@@ -28,6 +28,7 @@ import {
   getReminderPriority,
 } from './lib/reminders'
 import type { ReminderDraft } from './lib/reminders'
+import type { HourFormat } from './lib/time'
 import { searchNotebook } from './lib/search'
 import type { Content, ContentKind, Notebook, Reminder, Section } from './types'
 import './App.css'
@@ -43,6 +44,7 @@ type Editor =
 
 type Theme = 'dark' | 'light'
 const THEME_STORAGE_KEY = 'tomohu.theme'
+const HOUR_FORMAT_STORAGE_KEY = 'tomohu.hour-format'
 
 function getSavedTheme(): Theme {
   try {
@@ -51,6 +53,16 @@ function getSavedTheme(): Theme {
       : 'dark'
   } catch {
     return 'dark'
+  }
+}
+
+function getSavedHourFormat(): HourFormat {
+  try {
+    return localStorage.getItem(HOUR_FORMAT_STORAGE_KEY) === '12h'
+      ? '12h'
+      : '24h'
+  } catch {
+    return '24h'
   }
 }
 
@@ -346,10 +358,12 @@ function getTimeOneHourLater(time: string): string {
 
 function ReminderForm({
   reminder,
+  hourFormat,
   onSave,
   onRemove,
 }: {
   reminder?: Reminder
+  hourFormat: HourFormat
   onSave: (values: ReminderDraft) => void
   onRemove: () => void
 }) {
@@ -562,6 +576,7 @@ function ReminderForm({
             id="continuous-start"
             label="Horário de início"
             value={startTime}
+            hourFormat={hourFormat}
             onChange={setStartTime}
             activeId={activeTimePickerId}
             onActiveChange={setActiveTimePickerId}
@@ -570,6 +585,7 @@ function ReminderForm({
             id="continuous-end"
             label="Horário de término"
             value={endTime}
+            hourFormat={hourFormat}
             onChange={setEndTime}
             activeId={activeTimePickerId}
             onActiveChange={setActiveTimePickerId}
@@ -581,6 +597,7 @@ function ReminderForm({
           id="single-time"
           label="Horário do aviso"
           value={startTime}
+          hourFormat={hourFormat}
           onChange={setStartTime}
           activeId={activeTimePickerId}
           onActiveChange={setActiveTimePickerId}
@@ -599,6 +616,7 @@ function ReminderForm({
                   id={`repeat-${index}`}
                   label={`Horário ${index + 1}`}
                   value={time}
+                  hourFormat={hourFormat}
                   onChange={(nextTime) => {
                     if (
                       repeatTimes.some(
@@ -636,6 +654,7 @@ function ReminderForm({
               id="new-repeat-time"
               label="Novo horário"
               value={timeToAdd}
+              hourFormat={hourFormat}
               onChange={setTimeToAdd}
               activeId={activeTimePickerId}
               onActiveChange={setActiveTimePickerId}
@@ -708,6 +727,7 @@ function App() {
   const sortMenuRef = useRef<HTMLDivElement>(null)
   const [editor, setEditor] = useState<Editor>(null)
   const [theme, setTheme] = useState<Theme>(getSavedTheme)
+  const [hourFormat, setHourFormat] = useState<HourFormat>(getSavedHourFormat)
   const [importError, setImportError] = useState('')
   const importInputRef = useRef<HTMLInputElement>(null)
   const [isCompactContentLayout, setIsCompactContentLayout] = useState(
@@ -726,6 +746,13 @@ function App() {
       // Theme preference is optional when browser storage is unavailable.
     }
   }, [theme])
+  useEffect(() => {
+    try {
+      localStorage.setItem(HOUR_FORMAT_STORAGE_KEY, hourFormat)
+    } catch {
+      // Hour format preference is optional when browser storage is unavailable.
+    }
+  }, [hourFormat])
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)')
     const updateContentLayout = () => setIsCompactContentLayout(media.matches)
@@ -937,6 +964,7 @@ function App() {
                 )
                 openSection(currentContent.sectionId)
               }}
+              hourFormat={hourFormat}
             />
           </>
         ) : (
@@ -988,7 +1016,7 @@ function App() {
                       >
                         <span className="paper-tape" />
                         <span className="reminder-date">
-                          {formatReminderDate(reminder)}
+                          {formatReminderDate(reminder, hourFormat)}
                         </span>
                         <strong>{reminder.title}</strong>
                         <span className="reminder-countdown">
@@ -1374,6 +1402,39 @@ function App() {
                   </button>
                 </div>
               </fieldset>
+              <fieldset className="theme-field">
+                <legend>Formato de hora</legend>
+                <div
+                  className="theme-options"
+                  role="radiogroup"
+                  aria-label="Formato de hora"
+                >
+                  <button
+                    type="button"
+                    className={
+                      hourFormat === '24h'
+                        ? 'theme-option selected'
+                        : 'theme-option'
+                    }
+                    aria-pressed={hourFormat === '24h'}
+                    onClick={() => setHourFormat('24h')}
+                  >
+                    24 horas
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      hourFormat === '12h'
+                        ? 'theme-option selected'
+                        : 'theme-option'
+                    }
+                    aria-pressed={hourFormat === '12h'}
+                    onClick={() => setHourFormat('12h')}
+                  >
+                    12 horas (AM/PM)
+                  </button>
+                </div>
+              </fieldset>
               <button className="secondary-button" onClick={exportNotebook}>
                 <Icon name="download" />
                 Exportar cópia dos dados
@@ -1480,6 +1541,7 @@ function App() {
           {editor.kind === 'reminder' && (
             <ReminderForm
               reminder={editor.reminder}
+              hourFormat={hourFormat}
               onSave={(values) => {
                 const existing = editor.reminder
                 setNotebook((current) => ({

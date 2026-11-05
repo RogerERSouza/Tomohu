@@ -7,10 +7,16 @@ function toTime(hour: number, minute: number): string {
   return `${String(clamp(hour, 23)).padStart(2, '0')}:${String(clamp(minute, 59)).padStart(2, '0')}`
 }
 
+function toTwentyFourHour(hour: number, period: 'AM' | 'PM'): number {
+  const normalizedHour = Math.min(Math.max(Math.trunc(hour), 1), 12) % 12
+  return period === 'PM' ? normalizedHour + 12 : normalizedHour
+}
+
 export function TimePicker({
   id,
   label,
   value,
+  hourFormat,
   onChange,
   activeId,
   onActiveChange,
@@ -18,12 +24,15 @@ export function TimePicker({
   id: string
   label: string
   value: string
+  hourFormat: HourFormat
   onChange: (time: string) => void
   activeId: string | null
   onActiveChange: (id: string | null) => void
 }) {
   const isOpen = activeId === id
   const [hour, minute] = value.split(':').map(Number)
+  const period = hour >= 12 ? 'PM' : 'AM'
+  const displayHour = hour % 12 || 12
   return (
     <div className="time-picker">
       <span>{label}</span>
@@ -33,7 +42,7 @@ export function TimePicker({
         aria-expanded={isOpen}
         onClick={() => onActiveChange(isOpen ? null : id)}
       >
-        {toTime(hour, minute)}
+        {formatTime(toTime(hour, minute), hourFormat)}
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen && (
@@ -42,11 +51,18 @@ export function TimePicker({
             Hora
             <input
               type="number"
-              min="0"
-              max="23"
-              value={hour}
+              min={hourFormat === '12h' ? '1' : '0'}
+              max={hourFormat === '12h' ? '12' : '23'}
+              value={hourFormat === '12h' ? displayHour : hour}
               onChange={(event) =>
-                onChange(toTime(Number(event.target.value), minute))
+                onChange(
+                  toTime(
+                    hourFormat === '12h'
+                      ? toTwentyFourHour(Number(event.target.value), period)
+                      : Number(event.target.value),
+                    minute,
+                  ),
+                )
               }
             />
           </label>
@@ -63,6 +79,29 @@ export function TimePicker({
               }
             />
           </label>
+          {hourFormat === '12h' && (
+            <div
+              className="time-period-options"
+              role="radiogroup"
+              aria-label="Período"
+            >
+              {(['AM', 'PM'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={option === period ? 'selected' : undefined}
+                  aria-pressed={option === period}
+                  onClick={() =>
+                    onChange(
+                      toTime(toTwentyFourHour(displayHour, option), minute),
+                    )
+                  }
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
           <button type="button" onClick={() => onActiveChange(null)}>
             Pronto
           </button>
@@ -71,3 +110,4 @@ export function TimePicker({
     </div>
   )
 }
+import { formatTime, type HourFormat } from '../lib/time'

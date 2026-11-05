@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Content, ListItem } from '../types'
 import { getCounterTotal } from '../lib/notebook'
+import { formatDateTime, type HourFormat } from '../lib/time'
 import { Icon } from './Icon'
 import { ListProgress } from './ListProgress'
 
@@ -9,11 +10,13 @@ export function ContentEditor({
   onChange,
   onCount,
   onRemove,
+  hourFormat,
 }: {
   content: Content
   onChange: (content: Content) => void
   onCount: (delta: number) => void
   onRemove: () => void
+  hourFormat: HourFormat
 }) {
   const [newItem, setNewItem] = useState('')
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
@@ -234,13 +237,10 @@ export function ContentEditor({
                 </span>
                 <div>
                   <time dateTime={entry.createdAt}>
-                    {new Date(entry.createdAt).toLocaleString('pt-BR', {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    })}
+                    {formatDateTime(new Date(entry.createdAt), hourFormat)}
                   </time>
                   <input
-                    aria-label={`Anotação do registro de ${new Date(entry.createdAt).toLocaleString('pt-BR')}`}
+                    aria-label={`Anotação do registro de ${formatDateTime(new Date(entry.createdAt), hourFormat)}`}
                     placeholder="Adicionar uma anotação…"
                     value={entry.note}
                     onChange={(event) =>

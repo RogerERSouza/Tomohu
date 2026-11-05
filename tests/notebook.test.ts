@@ -17,6 +17,7 @@ import {
   isReminderExpired,
 } from '../src/lib/reminders.ts'
 import { searchNotebook } from '../src/lib/search.ts'
+import { formatTime } from '../src/lib/time.ts'
 
 test('counter history includes increases and corrections', () => {
   assert.equal(
@@ -427,4 +428,11 @@ test('a single-time reminder shows its one scheduled time', () => {
     formatReminderCountdown(reminder, new Date(2026, 10, 2, 14, 0)),
     'Faltam 30min 00s',
   )
+})
+
+test('time formatting supports 24-hour and 12-hour preferences', () => {
+  assert.equal(formatTime('00:05', '24h'), '00:05')
+  assert.equal(formatTime('00:05', '12h'), '12:05 AM')
+  assert.equal(formatTime('12:30', '12h'), '12:30 PM')
+  assert.equal(formatTime('18:45', '12h'), '6:45 PM')
 })

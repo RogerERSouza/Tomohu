@@ -1566,6 +1566,27 @@ legend {
   font-size: 11px;
   font-weight: 700;
 }
+.time-period-options {
+  display: flex;
+  gap: 4px;
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+.time-period-options button {
+  min-width: 36px;
+  border: 1px solid #8198bd55;
+  border-radius: 7px;
+  background: #17233a;
+  color: #b8c6dd;
+  padding: 7px 5px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.time-period-options button.selected {
+  border-color: #edcf9490;
+  background: #edcf9420;
+  color: #f1d99d;
+}
 .range-warning {
   margin: -5px 0 0;
   color: #f0b0a8;
@@ -2031,6 +2052,16 @@ legend {
   border-color: #c8c0ac;
   background: #f3efe5;
   color: #74571b;
+}
+:root[data-theme='light'] .time-period-options button {
+  border-color: #c8c0ac;
+  background: #fffdf8;
+  color: #34425b;
+}
+:root[data-theme='light'] .time-period-options button.selected {
+  border-color: #cfae57;
+  background: #fff3cb;
+  color: #66501d;
 }
 :root[data-theme='light'] .calendar-day:hover {
   background: #eee9dc;
