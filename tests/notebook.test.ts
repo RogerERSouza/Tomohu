@@ -18,6 +18,7 @@ import {
 } from '../src/lib/reminders.ts'
 import { searchNotebook } from '../src/lib/search.ts'
 import { formatTime } from '../src/lib/time.ts'
+import { getCalendarDays, WEEK_DAYS } from '../src/lib/calendar.ts'
 
 test('counter history includes increases and corrections', () => {
   assert.equal(
@@ -435,4 +436,19 @@ test('time formatting supports 24-hour and 12-hour preferences', () => {
   assert.equal(formatTime('00:05', '12h'), '12:05 AM')
   assert.equal(formatTime('12:30', '12h'), '12:30 PM')
   assert.equal(formatTime('18:45', '12h'), '6:45 PM')
+})
+
+test('calendar starts each month on the correct weekday column', () => {
+  const september = getCalendarDays(new Date(2026, 8, 1))
+  const november = getCalendarDays(new Date(2026, 10, 1))
+
+  assert.equal(WEEK_DAYS.length, 7)
+  assert.equal(
+    september.findIndex((day) => day?.getDate() === 1),
+    2,
+  )
+  assert.equal(
+    november.findIndex((day) => day?.getDate() === 1),
+    0,
+  )
 })

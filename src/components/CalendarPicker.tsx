@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import { getCalendarDays, WEEK_DAYS } from '../lib/calendar'
 import { getDateInputValue } from '../lib/reminders'
 
-const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Sex', 'Sáb']
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', {
   month: 'long',
   year: 'numeric',
@@ -10,23 +10,6 @@ const monthFormatter = new Intl.DateTimeFormat('pt-BR', {
 function getMonthStart(date: string): Date {
   const [year, month] = date.split('-').map(Number)
   return new Date(year, month - 1, 1)
-}
-
-function getDays(month: Date): Array<Date | null> {
-  const firstWeekDay = month.getDay()
-  const totalDays = new Date(
-    month.getFullYear(),
-    month.getMonth() + 1,
-    0,
-  ).getDate()
-  const days: Array<Date | null> = Array.from(
-    { length: firstWeekDay },
-    () => null,
-  )
-  for (let day = 1; day <= totalDays; day += 1)
-    days.push(new Date(month.getFullYear(), month.getMonth(), day))
-  while (days.length % 7) days.push(null)
-  return days
 }
 
 export function CalendarPicker({
@@ -40,7 +23,7 @@ export function CalendarPicker({
 }) {
   const [visibleMonth, setVisibleMonth] = useState(() => getMonthStart(value))
   const today = getDateInputValue()
-  const days = getDays(visibleMonth)
+  const days = getCalendarDays(visibleMonth)
   function selectDate(date: string) {
     onChange(date)
     setVisibleMonth(getMonthStart(date))
@@ -76,7 +59,7 @@ export function CalendarPicker({
         </button>
       </div>
       <div className="calendar-grid" role="grid" aria-label="Dias do mês">
-        {weekDays.map((day) => (
+        {WEEK_DAYS.map((day) => (
           <span className="calendar-weekday" key={day} aria-hidden="true">
             {day}
           </span>
