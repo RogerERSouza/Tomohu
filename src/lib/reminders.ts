@@ -1,4 +1,5 @@
 import type { Reminder } from '../types'
+import { formatTime, type HourFormat } from './time.ts'
 
 export type ReminderDraft = Omit<Reminder, 'id'>
 
@@ -90,7 +91,10 @@ export function getReminderNextOccurrence(
   return null
 }
 
-export function formatReminderDate(reminder: Reminder): string {
+export function formatReminderDate(
+  reminder: Reminder,
+  hourFormat: HourFormat = '24h',
+): string {
   const start = getReminderStart(reminder)
   if (!start) return 'Data inválida'
   const end = getReminderEnd(reminder)
@@ -104,12 +108,12 @@ export function formatReminderDate(reminder: Reminder): string {
   }
   if (reminder.schedule === 'time-range') {
     if (reminder.repeatTimes?.length)
-      return `${dateFormatter.format(start)} — ${dateFormatter.format(end ?? start)} · ${reminder.repeatTimes.join(', ')}`
+      return `${dateFormatter.format(start)} — ${dateFormatter.format(end ?? start)} · ${reminder.repeatTimes.map((time) => formatTime(time, hourFormat)).join(', ')}`
     if (isMultiDay && end)
-      return `${dateFormatter.format(start)} ${reminder.startTime ?? '--:--'} → ${dateFormatter.format(end)} ${reminder.endTime ?? '--:--'}`
+      return `${dateFormatter.format(start)} ${formatTime(reminder.startTime ?? '', hourFormat)} → ${dateFormatter.format(end)} ${formatTime(reminder.endTime ?? '', hourFormat)}`
     if (reminder.startTime && !reminder.endTime)
-      return `${dateFormatter.format(start)} · ${reminder.startTime}`
-    return `${dateFormatter.format(start)} · ${reminder.startTime ?? '--:--'}–${reminder.endTime ?? '--:--'}`
+      return `${dateFormatter.format(start)} · ${formatTime(reminder.startTime, hourFormat)}`
+    return `${dateFormatter.format(start)} · ${formatTime(reminder.startTime ?? '', hourFormat)}–${formatTime(reminder.endTime ?? '', hourFormat)}`
   }
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',

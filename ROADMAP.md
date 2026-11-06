@@ -82,7 +82,7 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 - [x] Cores livres para seções e subseções. — `0.2.0`
 - [x] Tema claro e escuro, salvo na preferência do navegador. — `0.14.0`
 - [ ] Seletor de idioma do app, começando por português e inglês, com textos centralizados para facilitar novos idiomas.
-- [ ] Escolha de formato de hora: 24 horas ou 12 horas (AM/PM), salva nas preferências do app.
+- [x] Escolha de formato de hora: 24 horas ou 12 horas (AM/PM), salva nas preferências do app. — `0.15.0`
 - [ ] Estilos de fonte predefinidos, como Padrão, Leitura e Nota, aplicados ao app inteiro e salvos na preferência do usuário.
 - [ ] Mais opções de personalização visual sem perder a identidade do Tomohu.
 
