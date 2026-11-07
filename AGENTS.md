@@ -24,13 +24,20 @@ Estas regras devem ser seguidas antes, durante e depois de qualquer alteração 
 ## Revisão obrigatória antes de entregar
 
 1. Revisar o diff completo e confirmar que cada linha alterada é necessária.
-2. Rodar, nesta ordem:
+2. Rodar, nesta ordem para alterações no frontend:
 
    ```powershell
    npm.cmd run lint
    npm.cmd run format:check
    npm.cmd test
    npm.cmd run build
+   ```
+
+   Para alterações no backend, dentro de `backend/`, rodar também:
+
+   ```powershell
+   python -m ruff check .
+   python -m pytest
    ```
 
 3. Testar no navegador os fluxos afetados: criar, editar, salvar, recarregar a página e excluir/concluir quando aplicável. Em cada fluxo, confirmar que uma pessoa nova entende o próximo passo e recebe uma mensagem útil se tentar uma ação inválida.

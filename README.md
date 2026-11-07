@@ -1,6 +1,8 @@
-# Tomohu · v0.6.3
+# Tomohu · v0.16.0
 
 Organizador pessoal em React e TypeScript. Primeira versão funcional, com armazenamento local e visual baseado no protótipo azul-escuro do Figma.
+
+O repositório agora também contém a base de uma API em Python. O frontend atual continua na raiz durante esta fase; a futura migração para a árvore `frontend/` será planejada separadamente para não interromper o GitHub Pages.
 
 ## Executar no Windows
 
@@ -37,6 +39,30 @@ npm.cmd run build
 ```
 
 Os testes verificam histórico do contador, hierarquia de seções, criação de conteúdos e validação dos dados salvos.
+
+## Backend
+
+O backend mora em [`backend/`](backend/), separado da interface. Ele usa FastAPI e começa com uma rota de saúde; ainda não há login, banco de dados ou sincronização de dados.
+
+No Windows, com Python 3.12 instalado:
+
+```powershell
+cd backend
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+python -m uvicorn app.main:app --reload
+```
+
+Abra http://127.0.0.1:8000/docs para a documentação interativa ou http://127.0.0.1:8000/health para verificar a API.
+
+Para validar o backend:
+
+```powershell
+python -m ruff check .
+python -m pytest
+```
 
 ## Organização do código
 
