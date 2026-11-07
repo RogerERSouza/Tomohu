@@ -9,6 +9,7 @@ import { Modal } from './components/Modal'
 import { SectionCard } from './components/SectionCard'
 import { TimePicker } from './components/TimePicker'
 import { useNotebook } from './hooks/useNotebook'
+import { createRemoteNotebook } from './lib/notebookApi'
 import {
   CONTENT_LABELS,
   createContent,
@@ -729,6 +730,23 @@ function App() {
   const [theme, setTheme] = useState<Theme>(getSavedTheme)
   const [hourFormat, setHourFormat] = useState<HourFormat>(getSavedHourFormat)
   const [importError, setImportError] = useState('')
+  const [apiStatus, setApiStatus] = useState('')
+  const [apiBusy, setApiBusy] = useState(false)
+
+  async function createDevelopmentCopy() {
+    if (apiBusy) return
+    if (!window.confirm('Criar uma cópia de TESTE na API local? Não use dados pessoais: a API ainda não possui autenticação. Seus dados neste navegador não serão alterados.')) return
+    setApiBusy(true)
+    setApiStatus('Enviando cópia de teste...')
+    try {
+      const result = await createRemoteNotebook('http://localhost:8000', notebook)
+      setApiStatus(`Cópia de teste criada (revisão ${result.revision}). Os dados locais permanecem intactos.`)
+    } catch (error) {
+      setApiStatus(error instanceof Error ? error.message : 'Falha ao criar cópia de teste.')
+    } finally {
+      setApiBusy(false)
+    }
+  }
   const importInputRef = useRef<HTMLInputElement>(null)
   const [isCompactContentLayout, setIsCompactContentLayout] = useState(
     () => window.matchMedia('(max-width: 760px)').matches,
@@ -1450,8 +1468,26 @@ function App() {
                   {importError}
                 </p>
               )}
+              {import.meta.env.DEV && (
+                <fieldset className="theme-field">
+                  <legend>API local (somente desenvolvimento)</legend>
+                  <p className="muted">
+                    Apenas para dados fictícios. A API ainda não possui login e
+                    esta operação cria uma cópia independente, sem sincronizar.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={apiBusy}
+                    onClick={() => void createDevelopmentCopy()}
+                  >
+                    {apiBusy ? 'Enviando...' : 'Criar cópia de teste na API'}
+                  </button>
+                  {apiStatus && <p role="status">{apiStatus}</p>}
+                </fieldset>
+              )}
               <p className="muted">Os dados ficam neste navegador.</p>
-              <span className="muted">Tomohu · v0.17.0</span>
+              <span className="muted">Tomohu · v0.18.0 (em desenvolvimento)</span>
             </div>
           )}
           {editor.kind === 'import-backup' && (
