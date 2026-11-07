@@ -88,9 +88,10 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 
 ### Dados, backup e dispositivos
 
+- [x] Criar a base do backend em Python/FastAPI, com configuração por ambiente, CORS restrito, rota de saúde e testes independentes do front-end. — `0.16.0`
 - [x] Importar backup JSON pela interface, com validação e confirmação antes de substituir os dados atuais. — `0.6.0`
 - [ ] Passar o projeto para uma **PWA** instalável: abrir como app no PC/celular e ter suporte offline onde for possível.
-- [ ] Definir corretamente a estratégia de armazenamento antes de dados sensíveis ou contas.
+- [ ] Definir corretamente a estratégia de armazenamento e o banco de dados antes de dados sensíveis ou contas.
 
 ### Contas, privacidade e segurança
 

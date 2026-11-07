@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.16.0 — 2026-11-06
+
+### Adicionado
+
+- Base inicial do backend em Python com FastAPI, separada do frontend atual.
+- Configuração por variáveis de ambiente, CORS com origens explícitas e rota `GET /health`.
+- Testes e ferramentas de qualidade próprios para o backend.
+
 ## 0.11.1 — 2026-10-30
 
 ### Corrigido
