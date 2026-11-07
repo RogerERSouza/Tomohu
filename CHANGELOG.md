@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 0.17.0 — 2026-11-07
+
+### Adicionado
+
+- Persistência do backend com PostgreSQL desde o desenvolvimento local, SQLAlchemy, migrations versionadas por Alembic e preparação para PostgreSQL remoto no Supabase.
+- API versionada de cadernos (`POST`, `GET` e `PUT`) que valida o formato já usado pelo Tomohu antes de salvar.
+- Controle de revisão para impedir que duas cópias do app sobrescrevam dados uma da outra silenciosamente.
+
+### Segurança e estabilidade
+
+- A API testa a disponibilidade do banco em `GET /health` sem expor configuração sensível.
+- Sem autenticação, as rotas de caderno anônimo são bloqueadas automaticamente em produção.
+- Testes de criação, leitura, atualização, conflito de revisão e dados inválidos para o núcleo persistido.
+
 ## 0.16.0 — 2026-11-06
 
 ### Adicionado

@@ -1,1 +1,5 @@
-"""Database models will be added with the persistence layer."""
+"""Persistent database models."""
+
+from app.models.notebook import NotebookRecord
+
+__all__ = ["NotebookRecord"]

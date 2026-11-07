@@ -4,12 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tomohu-api"
-version = "0.16.0"
+version = "0.17.0"
 description = "Backend API for Tomohu"
 requires-python = ">=3.12"
 dependencies = [
+  "alembic>=1.14,<2.0",
   "fastapi>=0.115,<1.0",
   "python-dotenv>=1.0,<2.0",
+  "psycopg[binary]>=3.2,<4.0",
+  "sqlalchemy>=2.0.36,<3.0",
   "uvicorn[standard]>=0.34,<1.0",
 ]
 
@@ -20,6 +23,10 @@ dev = [
   "ruff>=0.9,<1.0",
 ]
 
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["migrations*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -29,3 +36,5 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# FastAPI uses Depends(...) in endpoint signatures by design.
+ignore = ["B008"]
