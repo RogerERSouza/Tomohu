@@ -10,6 +10,7 @@ import { SectionCard } from './components/SectionCard'
 import { TimePicker } from './components/TimePicker'
 import { useNotebook } from './hooks/useNotebook'
 import { createRemoteNotebook } from './lib/notebookApi'
+import { createDevelopmentNotebook } from './lib/developmentNotebook'
 import {
   CONTENT_LABELS,
   createContent,
@@ -735,11 +736,11 @@ function App() {
 
   async function createDevelopmentCopy() {
     if (apiBusy) return
-    if (!window.confirm('Criar uma cópia de TESTE na API local? Não use dados pessoais: a API ainda não possui autenticação. Seus dados neste navegador não serão alterados.')) return
+    if (!window.confirm('Criar um caderno fictício na API local? Nenhum dado do seu caderno será enviado. A API ainda não possui autenticação.')) return
     setApiBusy(true)
-    setApiStatus('Enviando cópia de teste...')
+    setApiStatus('Enviando dados fictícios...')
     try {
-      const result = await createRemoteNotebook('http://localhost:8000', notebook)
+      const result = await createRemoteNotebook('http://localhost:8000', createDevelopmentNotebook())
       setApiStatus(`Cópia de teste criada (revisão ${result.revision}). Os dados locais permanecem intactos.`)
     } catch (error) {
       setApiStatus(error instanceof Error ? error.message : 'Falha ao criar cópia de teste.')
@@ -1472,8 +1473,8 @@ function App() {
                 <fieldset className="theme-field">
                   <legend>API local (somente desenvolvimento)</legend>
                   <p className="muted">
-                    Apenas para dados fictícios. A API ainda não possui login e
-                    esta operação cria uma cópia independente, sem sincronizar.
+                    Envia somente um caderno fictício, nunca seus dados locais.
+                    A API ainda não possui login nem sincronização.
                   </p>
                   <button
                     type="button"
@@ -1481,7 +1482,7 @@ function App() {
                     disabled={apiBusy}
                     onClick={() => void createDevelopmentCopy()}
                   >
-                    {apiBusy ? 'Enviando...' : 'Criar cópia de teste na API'}
+                    {apiBusy ? 'Enviando...' : 'Criar caderno fictício na API'}
                   </button>
                   {apiStatus && <p role="status">{apiStatus}</p>}
                 </fieldset>

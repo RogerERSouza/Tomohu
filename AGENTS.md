@@ -2,6 +2,14 @@
 
 Estas regras devem ser seguidas antes, durante e depois de qualquer alteração no projeto. O objetivo é evoluir o Tomohu sem introduzir regressões, dados inválidos ou código difícil de manter.
 
+## Project conventions
+
+- Use English for identifiers, file and directory names, code comments, docstrings, technical documentation, commit messages, and new architecture decision records.
+- Keep existing Portuguese UI copy until localization is implemented; then use centralized translation resources.
+- Keep repository documentation focused on project requirements, architecture, quality, security, and delivery criteria. Do not add personal collaboration preferences or chat-specific instructions.
+- Record significant architecture decisions with context, options, trade-offs, security implications, and migration consequences.
+- Do not rewrite unrelated legacy files merely to translate them. Migrate existing documentation incrementally as part of relevant changes.
+
 ## Antes de alterar
 
 1. Ler `ROADMAP.md` e confirmar que a tarefa cabe na entrega atual.

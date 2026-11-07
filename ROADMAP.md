@@ -90,6 +90,7 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 
 - [x] Criar a base do backend em Python/FastAPI, com configuração por ambiente, CORS restrito, rota de saúde e testes independentes do front-end. — `0.16.0`
 - [x] Definir a persistência do backend: PostgreSQL local e preparado para Supabase, SQLAlchemy, migrations, contratos validados e API de snapshot com proteção contra sobrescrita concorrente. — `0.17.0`
+- [ ] `0.18.0` — Validate local API integration using synthetic notebook data, without authentication, automatic synchronization, or access to existing browser data. Include API client tests, development-only UI, and end-to-end verification with PostgreSQL.
 - [x] Importar backup JSON pela interface, com validação e confirmação antes de substituir os dados atuais. — `0.6.0`
 - [ ] Passar o projeto para uma **PWA** instalável: abrir como app no PC/celular e ter suporte offline onde for possível.
 - [x] Definir corretamente a estratégia de armazenamento e o banco de dados antes de dados sensíveis ou contas. — `0.17.0`

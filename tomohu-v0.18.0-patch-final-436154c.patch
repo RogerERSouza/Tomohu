@@ -1,0 +1,139 @@
+diff --git a/AGENTS.md b/AGENTS.md
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -2,6 +2,14 @@
+ 
+ Estas regras devem ser seguidas antes, durante e depois de qualquer alteração no projeto. O objetivo é evoluir o Tomohu sem introduzir regressões, dados inválidos ou código difícil de manter.
+ 
++## Project conventions
++
++- Use English for identifiers, file and directory names, code comments, docstrings, technical documentation, commit messages, and new architecture decision records.
++- Keep existing Portuguese UI copy until localization is implemented; then use centralized translation resources.
++- Keep repository documentation focused on project requirements, architecture, quality, security, and delivery criteria. Do not add personal collaboration preferences or chat-specific instructions.
++- Record significant architecture decisions with context, options, trade-offs, security implications, and migration consequences.
++- Do not rewrite unrelated legacy files merely to translate them. Migrate existing documentation incrementally as part of relevant changes.
++
+ ## Antes de alterar
+ 
+ 1. Ler `ROADMAP.md` e confirmar que a tarefa cabe na entrega atual.
+diff --git a/ROADMAP.md b/ROADMAP.md
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -90,6 +90,7 @@
+ 
+ - [x] Criar a base do backend em Python/FastAPI, com configuração por ambiente, CORS restrito, rota de saúde e testes independentes do front-end. — `0.16.0`
+ - [x] Definir a persistência do backend: PostgreSQL local e preparado para Supabase, SQLAlchemy, migrations, contratos validados e API de snapshot com proteção contra sobrescrita concorrente. — `0.17.0`
++- [ ] `0.18.0` — Validate local API integration using synthetic notebook data, without authentication, automatic synchronization, or access to existing browser data. Include API client tests, development-only UI, and end-to-end verification with PostgreSQL.
+ - [x] Importar backup JSON pela interface, com validação e confirmação antes de substituir os dados atuais. — `0.6.0`
+ - [ ] Passar o projeto para uma **PWA** instalável: abrir como app no PC/celular e ter suporte offline onde for possível.
+ - [x] Definir corretamente a estratégia de armazenamento e o banco de dados antes de dados sensíveis ou contas. — `0.17.0`
+diff --git a/docs/versions/0.18.0.md b/docs/versions/0.18.0.md
+--- a/docs/versions/0.18.0.md
++++ b/docs/versions/0.18.0.md
+@@ -1,5 +1,5 @@
+ # Tomohu 0.18.0 — API client (development-only)
+ 
+-Introduces a typed HTTP adapter for the existing notebook snapshot API. The adapter is deliberately not wired to automatic persistence or the UI: remote notebook IDs are not authentication and must never be exposed as a public sync feature. Local browser storage remains authoritative. A subsequent authenticated workflow can explicitly opt in to migration after backups and conflict resolution exist.
++Introduces a typed HTTP adapter for the existing notebook snapshot API. A development-only Settings action sends a fresh, empty fixture to the local API; it never sends the active notebook. Remote notebook IDs are not authentication and must never be exposed as a public sync feature. Local browser storage remains authoritative. A subsequent authenticated workflow can explicitly opt in to migration after backups and conflict resolution exist.
+ 
+ - Only `http://localhost` and `http://127.0.0.1` are accepted as API origins.
+@@ -16,5 +16,7 @@
+   revision conflicts, malformed responses and offline errors.
+ - Redirects are rejected to avoid forwarding notebook snapshots to another origin.
+ - A remote snapshot is never loaded into or written over `localStorage` by this module.
++- The development-only UI sends an isolated empty fixture instead of the user's active notebook. The fixture has its own unit test.
++- Live integration against FastAPI and PostgreSQL remains a release gate; passing mocked client tests does not establish end-to-end correctness.
+ - **Not a production synchronization feature:** authentication, ownership checks,
+   verified backups, recovery and a conflict-resolution UX are prerequisites.
+diff --git a/src/App.tsx b/src/App.tsx
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -10,5 +10,6 @@
+ import { TimePicker } from './components/TimePicker'
+ import { useNotebook } from './hooks/useNotebook'
+ import { createRemoteNotebook } from './lib/notebookApi'
++import { createDevelopmentNotebook } from './lib/developmentNotebook'
+ import {
+   CONTENT_LABELS,
+@@ -735,11 +736,11 @@
+ 
+   async function createDevelopmentCopy() {
+     if (apiBusy) return
+-    if (!window.confirm('Criar uma cópia de TESTE na API local? Não use dados pessoais: a API ainda não possui autenticação. Seus dados neste navegador não serão alterados.')) return
++    if (!window.confirm('Criar um caderno fictício na API local? Nenhum dado do seu caderno será enviado. A API ainda não possui autenticação.')) return
+     setApiBusy(true)
+-    setApiStatus('Enviando cópia de teste...')
++    setApiStatus('Enviando dados fictícios...')
+     try {
+-      const result = await createRemoteNotebook('http://localhost:8000', notebook)
++      const result = await createRemoteNotebook('http://localhost:8000', createDevelopmentNotebook())
+       setApiStatus(`Cópia de teste criada (revisão ${result.revision}). Os dados locais permanecem intactos.`)
+     } catch (error) {
+       setApiStatus(error instanceof Error ? error.message : 'Falha ao criar cópia de teste.')
+@@ -1472,8 +1473,8 @@
+                 <fieldset className="theme-field">
+                   <legend>API local (somente desenvolvimento)</legend>
+                   <p className="muted">
+-                    Apenas para dados fictícios. A API ainda não possui login e
+-                    esta operação cria uma cópia independente, sem sincronizar.
++                    Envia somente um caderno fictício, nunca seus dados locais.
++                    A API ainda não possui login nem sincronização.
+                   </p>
+                   <button
+                     type="button"
+@@ -1481,7 +1482,7 @@
+                     disabled={apiBusy}
+                     onClick={() => void createDevelopmentCopy()}
+                   >
+-                    {apiBusy ? 'Enviando...' : 'Criar cópia de teste na API'}
++                    {apiBusy ? 'Enviando...' : 'Criar caderno fictício na API'}
+                   </button>
+                   {apiStatus && <p role="status">{apiStatus}</p>}
+                 </fieldset>
+diff --git a/src/lib/developmentNotebook.ts b/src/lib/developmentNotebook.ts
+new file mode 100644
+index 0000000..23a6980
+--- /dev/null
++++ b/src/lib/developmentNotebook.ts
+@@ -0,0 +1,14 @@
++import type { Notebook } from '../types'
++
++/**
++ * An isolated fixture for checking the local API.
++ * Never use the active notebook as an anonymous API test payload.
++ */
++export function createDevelopmentNotebook(): Notebook {
++  return {
++    schemaVersion: 1,
++    sections: [],
++    contents: [],
++    reminders: [],
++  }
++}
+diff --git a/tests/developmentNotebook.test.ts b/tests/developmentNotebook.test.ts
+new file mode 100644
+index 0000000..3c50c58
+--- /dev/null
++++ b/tests/developmentNotebook.test.ts
+@@ -0,0 +1,21 @@
++import assert from 'node:assert/strict'
++import test from 'node:test'
++import { createDevelopmentNotebook } from '../src/lib/developmentNotebook.ts'
++
++test('development payload is empty and isolated from user data', () => {
++  const first = createDevelopmentNotebook()
++  assert.deepEqual(first, {
++    schemaVersion: 1,
++    sections: [],
++    contents: [],
++    reminders: [],
++  })
++  first.sections.push({
++    id: 'fixture',
++    parentId: null,
++    title: 'Fixture',
++    emoji: '',
++    color: '#a7bcec',
++  })
++  assert.equal(createDevelopmentNotebook().sections.length, 0)
++})
