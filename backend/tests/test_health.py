@@ -17,6 +17,7 @@ async def test_health_reports_safe_api_status() -> None:
             app_name="Tomohu API Test",
             environment="test",
             cors_origins=("http://localhost:5173",),
+            database_url="sqlite+pysqlite:///:memory:",
         )
     )
 

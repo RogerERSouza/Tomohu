@@ -1,4 +1,4 @@
-# Tomohu · v0.16.0
+# Tomohu · v0.17.0
 
 Organizador pessoal em React e TypeScript. Primeira versão funcional, com armazenamento local e visual baseado no protótipo azul-escuro do Figma.
 
