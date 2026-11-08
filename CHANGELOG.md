@@ -1,5 +1,25 @@
 # Histórico de versões
 
+## 0.18.0 — 2026-11-07
+
+### Added
+
+- Backend registration, login and authenticated identity with Argon2id and short-lived bearer JWTs.
+- Account-scoped notebook queries and an additive ownership migration that preserves anonymous legacy records without granting access.
+- Authentication, ownership, migration and concurrency regression coverage; dedicated PostgreSQL integration checks in CI.
+- Architecture decision and API contracts to support the later frontend refactor and integration.
+
+### Changed
+
+- Anonymous notebook access is removed. Missing authentication is 401; foreign-owned resources are indistinguishable from missing resources (404).
+- Frontend behavior remains at the stable local-storage implementation; experimental anonymous API controls are removed when applying over the earlier 0.18 branch.
+- 0.19 is reserved for frontend refactoring; synchronization is planned as a separate later milestone.
+
+### Migration notes
+
+- Apply Alembic migrations after a verified backup. Existing unowned snapshots remain preserved and inaccessible through the API.
+- Downgrade refuses destructive removal once accounts exist. Public production account lifecycle and frontend token storage remain future work.
+
 ## 0.17.0 — 2026-11-07
 
 ### Adicionado

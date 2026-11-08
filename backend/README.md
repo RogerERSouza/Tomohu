@@ -1,62 +1,88 @@
-# Backend do Tomohu
+# Tomohu API · 0.18.0
 
-Esta pasta concentra a API do Tomohu. O frontend permanece separado e continua usando `localStorage` até a etapa de sincronização planejada.
+FastAPI, SQLAlchemy, PostgreSQL and Alembic. The browser still uses localStorage; this release adds backend authentication without connecting the frontend to accounts.
 
-## Estrutura
+## Run locally (Windows PowerShell)
 
-```text
-backend/
-├── app/
-│   ├── api/            # Rotas HTTP e versionamento futuro
-│   ├── core/           # Configurações e preocupações transversais
-│   ├── models/         # Modelos SQLAlchemy persistidos
-│   ├── repositories/   # Consultas ao banco
-│   ├── schemas/        # Contratos de entrada e saída da API
-│   ├── services/       # Regras de negócio e validação
-│   └── main.py         # Criação da aplicação FastAPI
-├── migrations/         # Histórico versionado do banco (Alembic)
-├── tests/
-├── .env.example
-└── pyproject.toml
-```
-
-## Executar
-
-Crie um ambiente virtual, instale as dependências de desenvolvimento e inicie a API:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\Activate.ps1
+```powershell
+cd backend
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
-python -m uvicorn app.main:app --reload
-```
-
-Use `GET /health` para verificar a API e `/docs` para abrir a documentação automática.
-
-## Banco de dados
-
-O banco do Tomohu é PostgreSQL desde o desenvolvimento local. Para iniciar uma cópia sem instalar o PostgreSQL diretamente no computador, com Docker Desktop aberto:
-
-```bash
+Copy-Item .env.example .env
+# Docker Desktop must be running:
 docker compose up -d
-cp .env.example .env  # Windows PowerShell: Copy-Item .env.example .env
 python -m alembic upgrade head
+python -m uvicorn app.main:app --reload --host 127.0.0.1
 ```
 
-O primeiro migration cria a tabela `notebooks`, usando `JSONB` no PostgreSQL. Ela guarda um snapshot validado do caderno atual, preservando o formato que já existe no frontend e permitindo salvar/carregar de forma atômica. Cada gravação usa uma `revision`; se duas cópias tentarem salvar ao mesmo tempo, a API responde `409 Conflict` em vez de apagar uma alteração silenciosamente.
+If a virtual environment and .env already exist, reuse them. Do not overwrite existing configuration or initialize another database. On macOS/Linux, activate with `source .venv/bin/activate` and copy the example with `cp` only when needed.
 
-Para produção, o destino previsto é o PostgreSQL remoto do Supabase. A configuração muda somente por `TOMOHU_DATABASE_URL`, com SSL obrigatório na URL fornecida pelo Supabase; modelos, migrations, serviços e repositórios permanecem os mesmos. Nunca copie a URL de produção para arquivos versionados.
+The application never creates tables on startup. Apply migrations before using `/docs`. `/health` checks a database connection with SELECT 1; it does not verify that migrations are current or that every table is usable.
 
-### Rotas já disponíveis
+## Authentication contract
 
-- `POST /api/v1/notebooks`: cria um caderno a partir de um backup/snapshot válido.
-- `GET /api/v1/notebooks/{id}`: carrega o snapshot salvo.
-- `PUT /api/v1/notebooks/{id}`: substitui o snapshot com a `revision` atual.
+| Method | Endpoint                 | Input / result                                             |
+| ------ | ------------------------ | ---------------------------------------------------------- |
+| POST   | `/api/v1/auth/register`  | JSON email/password; public account response, 201          |
+| POST   | `/api/v1/auth/login`     | JSON email/password; access_token, token_type, expires_in  |
+| GET    | `/api/v1/auth/me`        | Bearer token; public account                               |
+| POST   | `/api/v1/notebooks`      | Bearer token and snapshot; owner comes from authentication |
+| GET    | `/api/v1/notebooks/{id}` | Bearer token; only the owner can read                      |
+| PUT    | `/api/v1/notebooks/{id}` | Bearer token, revision and snapshot; 409 on stale revision |
 
-O frontend ainda não chama estas rotas: essa ligação será uma entrega própria, com migração segura dos dados já existentes em `localStorage` e plano de backup antes da primeira sincronização.
+Passwords contain 15–128 characters and are stored only as salted Argon2id hashes. Email identifiers are case-insensitive. Unknown account and wrong password return the same 401. Duplicate registration returns 409. Tokens expire after 15 minutes by default; no refresh tokens or frontend persistence policy are introduced.
 
-## Regras desta fase
+Use Swagger `/docs`: register, login, copy access_token, click Authorize and paste the token value (the HTTP Bearer scheme adds the prefix). Then call `/auth/me` or create a synthetic notebook. Never send real personal data to an unreviewed public deployment.
 
-- Nenhum segredo entra no Git: copie `.env.example` para `.env` quando for necessário.
-- Ainda não há login, conta ou sincronização automática entre dispositivos. Por isso, cadernos anônimos só ficam ativos em desenvolvimento/teste; em produção ficam desativados até a autenticação e a autorização por conta existirem.
-- Nunca coloque senhas, URLs reais de produção ou arquivos `.env` no Git.
+## Configuration
+
+| Variable                    | Policy                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| TOMOHU_ENVIRONMENT          | development, test or production                                              |
+| TOMOHU_DATABASE_URL         | Local PostgreSQL by default; remote Supabase later with TLS                  |
+| TOMOHU_CORS_ORIGINS         | Explicit comma-separated frontend origins; production requires HTTPS origins |
+| TOMOHU_JWT_SECRET           | Generate a random secret with at least 32 bytes; mandatory in production     |
+| TOMOHU_ACCESS_TOKEN_MINUTES | Default 15; allowed range 1–30                                               |
+
+Generate a secret with `python -c "import secrets; print(secrets.token_urlsafe(48))"`, then save it only in the untracked .env or deployment secret manager. Never commit it. An empty development secret produces a fresh application-instance key, invalidating tokens after a restart. The old TOMOHU_ALLOW_ANONYMOUS_NOTEBOOKS flag is removed and cannot bypass authentication.
+
+Supabase remains a future PostgreSQL host, not a new database API. Changing the connection URL does not transfer records. Keep credentials outside the browser and use provider-recommended TLS and pooling.
+
+## Existing data and recovery
+
+Migration 20261107_02 adds users and notebook ownership. Old anonymous snapshots are preserved with owner_id NULL and quarantined from the API. They are not assigned to any new account. Browser data is unchanged. Do not run the old anonymous API against the upgraded database.
+
+Before migration, stop writes and make a PostgreSQL backup using a client compatible with the server version. Restore the backup into a separate database, verify counts and representative snapshots, and only then treat it as recoverable. Keep an independent copy. Migrations version schema; they are not backups.
+
+The migration downgrade refuses to remove accounts once any user exists. For populated databases, use an explicit recovery/migration plan. Never delete accounts just to force a downgrade through.
+
+## Validation
+
+```powershell
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest
+```
+
+The default test suite uses temporary SQLite files for fast feedback. To run the same contract, migrations, and ownership tests on native PostgreSQL, create an empty dedicated database named `tomohu_test` and set:
+
+```powershell
+$env:TOMOHU_TEST_DATABASE_URL = 'postgresql+psycopg://tomohu:tomohu@localhost:5432/tomohu_test'
+python -m pytest
+Remove-Item Env:TOMOHU_TEST_DATABASE_URL
+```
+
+The database name must end in `_test`. Each test creates its own random schema and removes that schema afterwards. The test account must be allowed to create schemas. Never point this variable at a production database. CI includes PostgreSQL 17 integration checks. Tests cover additive upgrades with legacy data, guarded downgrade, schema/model agreement, database constraints, authentication, disabled accounts, token validation, owner isolation, optimistic concurrency, CORS, validation redaction and abuse limits.
+
+## Structure and boundaries
+
+- `app/api/`: routers and shared bearer/session dependencies.
+- `app/schemas/`: request/response contracts.
+- `app/services/`: account and notebook use cases.
+- `app/repositories/`: database queries.
+- `app/models/`: SQLAlchemy mappings.
+- `app/core/`: configuration, hashing/token primitives, transactions and rate limits.
+- `migrations/`: reviewed Alembic schema history.
+
+See [ADR 0001](../docs/architecture/0001-authentication-and-notebook-ownership.md) for security trade-offs and deferred production requirements. Account recovery, verified email, logout/revocation and shared production rate limiting are not claimed complete in 0.18.

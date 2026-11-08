@@ -4,11 +4,14 @@ Estas regras devem ser seguidas antes, durante e depois de qualquer alteração 
 
 ## Project conventions
 
-- Use English for identifiers, file and directory names, code comments, docstrings, technical documentation, commit messages, and new architecture decision records.
-- Keep existing Portuguese UI copy until localization is implemented; then use centralized translation resources.
-- Keep repository documentation focused on project requirements, architecture, quality, security, and delivery criteria. Do not add personal collaboration preferences or chat-specific instructions.
-- Record significant architecture decisions with context, options, trade-offs, security implications, and migration consequences.
-- Do not rewrite unrelated legacy files merely to translate them. Migrate existing documentation incrementally as part of relevant changes.
+- Use English for identifiers, file and directory names, comments, docstrings, technical documentation, commit messages, and new architecture records.
+- Keep existing Portuguese UI copy until localization uses centralized resources.
+- Document project requirements, architecture, quality, security, and delivery criteria; keep personal collaboration history outside the repository.
+- Record significant decisions with context, alternatives, trade-offs, security implications, and migration consequences.
+- Update legacy documentation incrementally when relevant; avoid unrelated translation changes.
+- Treat substantial architectural changes as separate `0.x.0` releases, with a documented baseline, validation, and recovery plan.
+- Frontend refactoring must first establish behavioral regression coverage and preserve saved data, appearance, and interactions.
+- Keep backend HTTP handling, use cases, contracts, and persistence separate. Never accept resource ownership from an untrusted client field.
 
 ## Antes de alterar
 

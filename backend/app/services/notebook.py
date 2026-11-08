@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -9,25 +8,38 @@ from app.repositories.notebook import NotebookRepository
 from app.schemas.notebook import NotebookSnapshot
 
 
+class NotebookNotFound(Exception):
+    pass
+
+
+class NotebookConflict(Exception):
+    pass
+
+
+class InvalidSnapshot(Exception):
+    pass
+
+
 class NotebookService:
     def __init__(self, repository: NotebookRepository | None = None) -> None:
         self.repository = repository or NotebookRepository()
 
-    def create(self, session: Session, snapshot: NotebookSnapshot) -> NotebookRecord:
+    def create(
+        self, session: Session, snapshot: NotebookSnapshot, owner_id: str
+    ) -> NotebookRecord:
         self._validate_or_reject(snapshot)
         notebook = NotebookRecord(
             id=str(uuid4()),
+            owner_id=owner_id,
             schema_version=snapshot.schemaVersion,
             snapshot=snapshot.model_dump(mode="json", exclude_unset=True),
         )
         return self.repository.add(session, notebook)
 
-    def get(self, session: Session, notebook_id: str) -> NotebookRecord:
-        notebook = self.repository.get(session, notebook_id)
+    def get(self, session: Session, notebook_id: str, owner_id: str) -> NotebookRecord:
+        notebook = self.repository.get(session, notebook_id, owner_id)
         if notebook is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Notebook not found"
-            )
+            raise NotebookNotFound("Notebook not found")
         return notebook
 
     def replace(
@@ -36,13 +48,13 @@ class NotebookService:
         notebook_id: str,
         revision: int,
         snapshot: NotebookSnapshot,
+        owner_id: str,
     ) -> NotebookRecord:
         self._validate_or_reject(snapshot)
-        notebook = self.get(session, notebook_id)
+        notebook = self.get(session, notebook_id, owner_id)
         if notebook.revision != revision:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Notebook changed elsewhere. Load it before saving again.",
+            raise NotebookConflict(
+                "Notebook changed elsewhere. Load it before saving again."
             )
         notebook.schema_version = snapshot.schemaVersion
         notebook.snapshot = snapshot.model_dump(mode="json", exclude_unset=True)
@@ -51,9 +63,8 @@ class NotebookService:
             session.flush()
         except StaleDataError as error:
             session.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Notebook changed elsewhere. Load it before saving again.",
+            raise NotebookConflict(
+                "Notebook changed elsewhere. Load it before saving again."
             ) from error
         return notebook
 
@@ -62,9 +73,7 @@ class NotebookService:
         try:
             NotebookService._validate_snapshot(snapshot)
         except ValueError as error:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-            ) from error
+            raise InvalidSnapshot(str(error)) from error
 
     @staticmethod
     def _validate_snapshot(snapshot: NotebookSnapshot) -> None:
