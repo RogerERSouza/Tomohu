@@ -1,4 +1,4 @@
-# Tomohu · v0.17.0
+# Tomohu · v0.18.0
 
 Organizador pessoal em React e TypeScript. Primeira versão funcional, com armazenamento local e visual baseado no protótipo azul-escuro do Figma.
 
@@ -42,7 +42,7 @@ Os testes verificam histórico do contador, hierarquia de seções, criação de
 
 ## Backend
 
-O backend mora em [`backend/`](backend/), separado da interface. Ele usa FastAPI e começa com uma rota de saúde; ainda não há login, banco de dados ou sincronização de dados.
+The backend in [`backend/`](backend/) provides FastAPI authentication, PostgreSQL persistence, Alembic migrations, and owner-scoped notebook snapshots. The frontend still uses browser storage; account UI and synchronization are future releases. Follow [backend/README.md](backend/README.md) to configure PostgreSQL and apply migrations before calling the API.
 
 No Windows, com Python 3.12 instalado:
 
@@ -87,7 +87,7 @@ As regras obrigatórias para alterações ficam em [AGENTS.md](AGENTS.md).
 
 - Os dados ficam somente neste navegador e origem (protocolo, host e porta). Limpar os dados do site pode removê-los. A exportação JSON é uma cópia dos dados; ainda não há importação pela interface.
 - Use uma aba por vez: ainda não há sincronização de alterações entre abas ou dispositivos.
-- Não há login, banco remoto, compartilhamento ou recuperação na nuvem.
+- The frontend has no login screen, cloud synchronization, sharing or account recovery yet. Backend authentication is available for API clients.
 - O aplicativo ainda não é uma PWA: não garante abrir sem internet depois que o servidor for encerrado. Persistência local não equivale a um aplicativo offline completo.
 - Lembretes têm data local, duração de um ou vários dias, opção de dia todo, evento contínuo ou horários diários programados e contador automático até o próximo evento. Notificações do sistema ainda ficam para outra etapa.
 - Ainda não há exclusão/lixeira de seções e conteúdos, movimentação entre seções nem reordenação de cartões. Itens de listas podem ser excluídos e reordenados.
@@ -96,6 +96,6 @@ As regras obrigatórias para alterações ficam em [AGENTS.md](AGENTS.md).
 
 ## Versões e Git
 
-`0.6.3` identifica esta entrega no pacote e no changelog. O repositório é publicado pelo GitHub Pages após cada push na `main`.
+`0.18.0` identifies this backend authentication milestone. GitHub Pages publishes the frontend after a push to `main`. Version `0.19.0` is reserved for frontend refactoring; account integration and synchronization follow separately.
 
 Commits futuros: `feat: add ...`, `fix: correct ...`, `refactor: extract ...`. Uma versão pode reunir vários commits.

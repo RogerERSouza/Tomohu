@@ -1,22 +1,47 @@
 import pytest
 
-from app.core.config import DEFAULT_CORS_ORIGINS, parse_bool, parse_origins
+from app.core.config import DEFAULT_CORS_ORIGINS, Settings, parse_origins
 
 
-def test_parse_origins_uses_safe_defaults() -> None:
+def test_parse_origins():
     assert parse_origins(None) == DEFAULT_CORS_ORIGINS
     assert parse_origins("  ") == DEFAULT_CORS_ORIGINS
-
-
-def test_parse_origins_trims_empty_values() -> None:
-    assert parse_origins("https://app.tomohu.test, , https://admin.tomohu.test ") == (
-        "https://app.tomohu.test",
-        "https://admin.tomohu.test",
+    assert parse_origins("https://a.example.com, , https://b.example.com ") == (
+        "https://a.example.com",
+        "https://b.example.com",
     )
 
 
-def test_parse_bool_accepts_explicit_values_and_rejects_ambiguity() -> None:
-    assert parse_bool("true", default=False) is True
-    assert parse_bool("0", default=True) is False
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"jwt_secret": ""},
+        {"jwt_secret": "short"},
+        {"cors_origins": ("*",)},
+        {"cors_origins": ("http://example.com",)},
+        {"cors_origins": ()},
+        {"cors_origins": ("https://example.com/path",)},
+        {"database_url": "sqlite://"},
+        {"access_token_minutes": 31},
+    ],
+)
+def test_unsafe_production_settings_fail_closed(overrides):
+    values = dict(
+        app_name="Test",
+        environment="production",
+        cors_origins=("https://example.com",),
+        jwt_secret="test-secret-" * 4,
+        database_url="postgresql+psycopg://localhost/test",
+    )
+    values.update(overrides)
     with pytest.raises(ValueError):
-        parse_bool("sometimes", default=False)
+        Settings(**values)
+
+
+def test_settings_hide_secret_and_local_instances_have_independent_keys():
+    first = Settings("Test", "test", ())
+    second = Settings("Test", "test", ())
+    assert first.jwt_secret != second.jwt_secret
+    assert first.jwt_secret not in repr(first)
+    with pytest.raises(ValueError):
+        Settings("Test", "typo", ())

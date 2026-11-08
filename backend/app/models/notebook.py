@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Integer, SmallInteger, String, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, SmallInteger, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -8,11 +8,14 @@ from app.models.base import Base
 
 
 class NotebookRecord(Base):
-    """A complete Tomohu notebook, ready to gain an owner after login exists."""
+    """A snapshot owned by an account; legacy anonymous rows remain quarantined."""
 
     __tablename__ = "notebooks"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True, nullable=True
+    )
     schema_version: Mapped[int] = mapped_column(SmallInteger)
     snapshot: Mapped[dict[str, object]] = mapped_column(
         JSONB().with_variant(JSON, "sqlite")
