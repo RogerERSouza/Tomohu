@@ -1,4 +1,4 @@
-import type { ListItem } from '../types'
+import type { ListItem } from '../../types'
 
 export function ListProgress({ items }: { items: ListItem[] }) {
   const completed = items.filter((item) => item.completed).length

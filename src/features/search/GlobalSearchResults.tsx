@@ -1,6 +1,6 @@
-import { CONTENT_LABELS } from '../lib/notebook'
-import type { SearchResult } from '../lib/search'
-import { Icon } from './Icon'
+import { CONTENT_LABELS } from '../../lib/notebook'
+import type { SearchResult } from '../../lib/search'
+import { Icon } from '../../components/Icon'
 
 const GROUPS = [
   { kind: 'section' as const, label: 'Seções' },

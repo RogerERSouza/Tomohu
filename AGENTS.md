@@ -69,3 +69,13 @@ Estas regras devem ser seguidas antes, durante e depois de qualquer alteração 
 ## Critério de qualidade
 
 Uma alteração só está pronta quando é legível, removível ou evoluível sem efeito escondido, mantém os dados antigos funcionando e passa validações automáticas e manuais. Segurança e estabilidade valem mais do que entregar rápido.
+
+## Frontend module boundaries
+
+- `src/app` composes routes, the shell, and feature dialogs. Keep business rules and form state out of the composition root.
+- `src/pages` composes feature UI. Features must not import pages or app modules.
+- `src/features` owns specialized UI and behavior. `features/notebook` owns the single notebook state, mutations, and local persistence adapter.
+- `src/components` and `src/hooks` contain reusable UI and browser hooks; they must not depend on app, pages, or features.
+- `src/lib`, `src/types.ts`, and `src/data` contain React-independent domain rules, contracts, and initial data. ESLint enforces dependency direction.
+- Run `npm run typecheck` and `npm run test:e2e` after the standard frontend checks. Install Chromium with `npx playwright install chromium` on first use.
+- Before another structural refactor, run the browser suite on the baseline and compare equivalent screenshots in the same browser environment. Preserve `task.notebook.v1`, schema version 1, preference keys, hash routes, and confirmation flows unless a separate migration is approved.

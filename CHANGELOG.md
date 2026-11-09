@@ -1,5 +1,21 @@
 # Histórico de versões
 
+## 0.19.0 — 2026-11-09
+
+### Changed
+
+- Extract frontend app composition, pages, feature UI, preferences, collection selection, notebook actions and storage/file adapters.
+- Preserve notebook schema, browser keys, hash routes, markup, styles and confirmation behavior.
+- Enable TypeScript strict mode, type-check tests, and enforce module dependency direction with ESLint.
+- Read the version displayed in Settings from package metadata instead of the stale 0.17 label.
+- Use Node 24 consistently in frontend validation and Pages workflows.
+
+### Added
+
+- Component/persistence interaction tests and desktop/mobile Chromium browser regressions, established before extraction and repeated afterwards.
+- Production-preview browser checks in CI with failure artifacts.
+- Frontend architecture and release validation/recovery records.
+
 ## 0.18.0 — 2026-11-07
 
 ### Added

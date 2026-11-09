@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { CONTENT_LABELS, getCounterTotal } from '../lib/notebook'
-import type { Content } from '../types'
-import { Icon } from './Icon'
+import { CONTENT_LABELS, getCounterTotal } from '../../lib/notebook'
+import type { Content } from '../../types'
+import { Icon } from '../../components/Icon'
 import { ListProgress } from './ListProgress'
 
 export function ContentCard({
