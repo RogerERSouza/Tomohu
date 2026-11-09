@@ -4,6 +4,7 @@ import type { Notebook } from '../../types'
 
 export function useNotebook() {
   const [initial] = useState(loadNotebook)
+  const [isSavingBlocked, setIsSavingBlocked] = useState(initial.blocked)
   const [notebook, setNotebook] = useState(initial.notebook)
   const [storageError, setStorageError] = useState(initial.error)
 
@@ -11,6 +12,7 @@ export function useNotebook() {
     try {
       saveNotebook(nextNotebook)
       setNotebook(nextNotebook)
+      setIsSavingBlocked(false)
       setStorageError('')
       return true
     } catch {
@@ -22,7 +24,7 @@ export function useNotebook() {
   }
 
   useEffect(() => {
-    if (initial.blocked) return
+    if (isSavingBlocked) return
     let active = true
     const reportError = (message: string) =>
       queueMicrotask(() => {
@@ -39,7 +41,7 @@ export function useNotebook() {
     return () => {
       active = false
     }
-  }, [notebook, initial.blocked])
+  }, [notebook, isSavingBlocked])
 
   return { notebook, setNotebook, replaceNotebook, storageError }
 }

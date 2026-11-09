@@ -38,7 +38,7 @@ npm.cmd test
 npm.cmd run build
 ```
 
-The standard checks run 20 domain/collection tests and 6 component/persistence tests. Also run the strict type and browser checks:
+The standard checks run 26 domain/collection tests and 10 component/persistence tests. Also run the strict type and browser checks:
 
 ```powershell
 npm.cmd run typecheck
@@ -46,7 +46,7 @@ npx.cmd playwright install chromium
 npm.cmd run test:e2e
 ```
 
-Playwright builds the production frontend, starts its own preview on port 4173, and checks 16 scenarios at desktop (1280×900) and mobile (360×780) sizes. Docker and the API are not required for these frontend tests. Close any existing server on port 4173 first. Run `npx.cmd playwright show-report` to inspect the browser report. The mobile project emulates Chromium touch/viewport behavior; it is not a physical-device test.
+Playwright builds the production frontend, starts its own preview on port 4173, and checks 22 scenarios at desktop (1280×900) and mobile (360×780) sizes. Docker and the API are not required for these frontend tests. Close any existing server on port 4173 first. Run `npx.cmd playwright show-report` to inspect the browser report. The mobile project emulates Chromium touch/viewport behavior; it is not a physical-device test.
 
 ## Backend
 

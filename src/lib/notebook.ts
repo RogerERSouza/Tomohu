@@ -1,4 +1,5 @@
 import type { Content, CounterEntry, Notebook, Section } from '../types'
+import { isValidTimestamp } from './time.ts'
 
 export const STORAGE_KEY = 'task.notebook.v1'
 export const CONTENT_LABELS = {
@@ -175,7 +176,7 @@ export function isNotebook(value: unknown): value is Notebook {
                 isText(entry.id) &&
                 typeof entry.delta === 'number' &&
                 Number.isFinite(entry.delta) &&
-                isText(entry.createdAt) &&
+                isValidTimestamp(entry.createdAt) &&
                 isText(entry.note),
             )
           )

@@ -1,5 +1,9 @@
 export type HourFormat = '24h' | '12h'
 
+export function isValidTimestamp(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value))
+}
+
 export function formatTime(value: string, hourFormat: HourFormat): string {
   const [hour, minute] = value.split(':').map(Number)
   if (
@@ -21,6 +25,7 @@ export function formatTime(value: string, hourFormat: HourFormat): string {
 }
 
 export function formatDateTime(date: Date, hourFormat: HourFormat): string {
+  if (!Number.isFinite(date.getTime())) return 'Data inválida'
   return new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short',

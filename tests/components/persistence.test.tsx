@@ -76,3 +76,59 @@ test('a failed backup replacement keeps the current notebook and reports the fai
   assert.match(result.current.storageError, /Não foi possível importar/)
   assert.equal(localStorage.getItem(STORAGE_KEY), JSON.stringify(saved))
 })
+
+test('a confirmed recovery resumes autosave and keeps later edits after remount', async () => {
+  localStorage.setItem(STORAGE_KEY, '{damaged')
+  const { result, unmount } = renderHook(useNotebook, { wrapper: StrictMode })
+  const replacement = structuredClone(saved)
+  await act(async () => {
+    assert.equal(result.current.replaceNotebook(replacement), true)
+  })
+  assert.equal(result.current.storageError, '')
+  await act(async () => {
+    result.current.setNotebook((current) => ({
+      ...current,
+      sections: current.sections.map((section) => ({
+        ...section,
+        title: 'Edited after recovery',
+      })),
+    }))
+  })
+  const expected = structuredClone(result.current.notebook)
+  unmount()
+  const reloaded = renderHook(useNotebook, { wrapper: StrictMode })
+  assert.deepEqual(reloaded.result.current.notebook, expected)
+  assert.equal(
+    reloaded.result.current.notebook.sections[0].title,
+    'Edited after recovery',
+  )
+})
+
+test('a failed recovery keeps saving blocked until an explicit replacement succeeds', async (context) => {
+  localStorage.setItem(STORAGE_KEY, '{damaged')
+  const { result } = renderHook(useNotebook, { wrapper: StrictMode })
+  const write = context.mock.method(window.Storage.prototype, 'setItem', () => {
+    throw new Error('Storage blocked')
+  })
+  await act(async () => {
+    assert.equal(result.current.replaceNotebook(saved), false)
+  })
+  write.mock.restore()
+  await act(async () => {
+    result.current.setNotebook(saved)
+  })
+  assert.equal(localStorage.getItem(STORAGE_KEY), '{damaged')
+  await act(async () => {
+    assert.equal(result.current.replaceNotebook(saved), true)
+  })
+  await act(async () => {
+    result.current.setNotebook((current) => ({
+      ...current,
+      reminders: [{ id: 'r', title: 'After recovery', date: '2030-05-12' }],
+    }))
+  })
+  assert.deepEqual(
+    JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null'),
+    result.current.notebook,
+  )
+})

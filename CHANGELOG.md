@@ -2,6 +2,14 @@
 
 ## 0.19.0 — 2026-11-09
 
+### Fixed after branch review
+
+- Resume autosave after a confirmed backup recovery; failed replacement keeps the preservation block active.
+- Initialize timed-event defaults from valid scheduled or legacy times when converting an all-day reminder.
+- Reject unparseable counter-history timestamps before importing; invalid dates also have a safe editor display fallback.
+- Keep section tag controls inside narrow mobile dialogs in both themes.
+- Add regression coverage for the four reproduced defects; see `docs/versions/0.19.0-review-fixes.md`.
+
 ### Changed
 
 - Extract frontend app composition, pages, feature UI, preferences, collection selection, notebook actions and storage/file adapters.

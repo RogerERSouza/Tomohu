@@ -6,11 +6,7 @@ import { getDateInputValue, getReminderDate } from '../../lib/reminders'
 import type { ReminderDraft } from '../../lib/reminders'
 import type { HourFormat } from '../../lib/time'
 import type { Reminder } from '../../types'
-
-function getTimeOneHourLater(time: string): string {
-  const [hour, minute] = time.split(':').map(Number)
-  return `${String((hour + 1) % 24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-}
+import { getInitialReminderTimes } from './reminderFormTimes'
 
 export function ReminderForm({
   reminder,
@@ -45,13 +41,9 @@ export function ReminderForm({
             ? 'single-time'
             : 'all-day',
   )
-  const legacyTime = reminder?.date.slice(11, 16)
-  const [startTime, setStartTime] = useState(
-    reminder?.startTime ?? legacyTime ?? '09:00',
-  )
-  const [endTime, setEndTime] = useState(
-    reminder?.endTime ?? getTimeOneHourLater(legacyTime ?? '09:00'),
-  )
+  const [initialTimes] = useState(() => getInitialReminderTimes(reminder))
+  const [startTime, setStartTime] = useState(initialTimes.startTime)
+  const [endTime, setEndTime] = useState(initialTimes.endTime)
   const [repeatTimes, setRepeatTimes] = useState(
     reminder?.repeatTimes?.length ? reminder.repeatTimes : ['09:00'],
   )
