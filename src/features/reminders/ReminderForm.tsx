@@ -2,7 +2,11 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { CalendarPicker } from '../../components/CalendarPicker'
 import { TimePicker } from '../../components/TimePicker'
-import { getDateInputValue, getReminderDate } from '../../lib/reminders'
+import {
+  getDateInputValue,
+  getReminderDate,
+  isValidReminderInterval,
+} from '../../lib/reminders'
 import type { ReminderDraft } from '../../lib/reminders'
 import type { HourFormat } from '../../lib/time'
 import type { Reminder } from '../../types'
@@ -56,7 +60,12 @@ export function ReminderForm({
   const invalidDateRange = spansMultipleDays && endDate < date
   const invalidTimeRange =
     occurrence === 'continuous' &&
-    (!endTime || (!spansMultipleDays && endTime <= startTime))
+    !isValidReminderInterval(
+      date,
+      startTime,
+      spansMultipleDays ? endDate : date,
+      endTime,
+    )
   const invalidRepeatTimes =
     occurrence === 'daily-times' && repeatTimes.length === 0
   function changeStartDate(nextDate: string) {

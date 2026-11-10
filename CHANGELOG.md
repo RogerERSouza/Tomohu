@@ -4,6 +4,10 @@
 
 ### Fixed after branch review
 
+- Reject impossible reminder dates/times, duplicate scoped IDs, broken section references, parent cycles, and invalid counter totals before loading or importing snapshots.
+- Apply the same continuous-interval rule to imports and the reminder form, including multi-day selection with equal dates; preserve valid overnight intervals.
+- Keep invalid calendar values from crashing the application and reject nonfinite counter updates.
+- Keep snapshot validation in a React-independent module; remove the former inline validator and reuse pure date/time rules. See `docs/versions/0.19.0-validation-fixes.md`.
 - Resume autosave after a confirmed backup recovery; failed replacement keeps the preservation block active.
 - Initialize timed-event defaults from valid scheduled or legacy times when converting an all-day reminder.
 - Reject unparseable counter-history timestamps before importing; invalid dates also have a safe editor display fallback.

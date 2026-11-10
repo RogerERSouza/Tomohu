@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getCalendarDays, WEEK_DAYS } from '../lib/calendar'
 import { getDateInputValue } from '../lib/reminders'
+import { isValidDate } from '../lib/time'
 
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', {
   month: 'long',
@@ -8,8 +9,13 @@ const monthFormatter = new Intl.DateTimeFormat('pt-BR', {
 })
 
 function getMonthStart(date: string): Date {
-  const [year, month] = date.split('-').map(Number)
-  return new Date(year, month - 1, 1)
+  const [year, month] = (isValidDate(date) ? date : getDateInputValue())
+    .split('-')
+    .map(Number)
+  const result = new Date()
+  result.setFullYear(year, month - 1, 1)
+  result.setHours(0, 0, 0, 0)
+  return result
 }
 
 export function CalendarPicker({

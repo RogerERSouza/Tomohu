@@ -23,11 +23,9 @@ export function createNotebookActions(
     setNotebook((current) => ({
       ...current,
       contents: current.contents.map((content) => {
-        if (
-          content.id !== id ||
-          content.kind !== 'counter' ||
-          getCounterTotal(content.entries) + delta < 0
-        )
+        if (content.id !== id || content.kind !== 'counter') return content
+        const total = getCounterTotal(content.entries) + delta
+        if (!Number.isFinite(delta) || !Number.isFinite(total) || total < 0)
           return content
         return {
           ...content,

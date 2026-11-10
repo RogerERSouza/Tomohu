@@ -6,7 +6,15 @@ import { formatDateTime } from '../src/lib/time.ts'
 function backup(createdAt: string) {
   return {
     schemaVersion: 1,
-    sections: [],
+    sections: [
+      {
+        id: 's',
+        parentId: null,
+        title: 'Section',
+        emoji: '',
+        color: '#a7bcec',
+      },
+    ],
     reminders: [],
     contents: [
       {

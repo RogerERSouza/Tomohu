@@ -175,7 +175,15 @@ test('new content receives an independent id and empty data for its type', () =>
 test('saved data validation rejects malformed content and unsupported versions', () => {
   const valid = {
     schemaVersion: 1,
-    sections: [],
+    sections: [
+      {
+        id: 'section',
+        parentId: null,
+        title: 'Section',
+        emoji: '',
+        color: '#a7bcec',
+      },
+    ],
     contents: [createContent('note', 'section', 'Nota')],
     reminders: [],
   }

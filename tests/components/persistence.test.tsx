@@ -59,6 +59,44 @@ test('invalid stored data survives loading and editing the fallback notebook', a
   assert.equal(localStorage.getItem(STORAGE_KEY), '{damaged')
 })
 
+test('structurally valid but inconsistent saved data is preserved until confirmed recovery', async () => {
+  const invalid = { ...saved, sections: [] }
+  const original = JSON.stringify(invalid)
+  localStorage.setItem(STORAGE_KEY, original)
+  const { result, unmount } = renderHook(useNotebook, { wrapper: StrictMode })
+  assert.match(result.current.storageError, /salvamento foi pausado/)
+  await act(async () => result.current.setNotebook(saved))
+  assert.equal(localStorage.getItem(STORAGE_KEY), original)
+  await act(async () => {
+    assert.equal(result.current.replaceNotebook(saved), true)
+  })
+  unmount()
+  const reloaded = renderHook(useNotebook)
+  assert.equal(reloaded.result.current.storageError, '')
+  assert.deepEqual(reloaded.result.current.notebook, saved)
+})
+
+test('counter actions reject nonfinite updates while preserving valid corrections', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+  const { result } = renderHook(() => {
+    const state = useNotebook()
+    return { ...state, actions: createNotebookActions(state.setNotebook) }
+  })
+  await act(async () => {
+    for (const delta of [NaN, Infinity, -Infinity, -1])
+      result.current.actions.changeCount('c', delta)
+    result.current.actions.changeCount('c', 2)
+    result.current.actions.changeCount('c', -1)
+  })
+  const counter = result.current.notebook.contents[0]
+  if (counter.kind !== 'counter') throw new Error('Expected counter')
+  assert.deepEqual(
+    counter.entries.map((entry) => entry.delta),
+    [2, -1],
+  )
+  assert.equal(getCounterTotal(counter.entries), 1)
+})
+
 test('a failed backup replacement keeps the current notebook and reports the failure', async (context) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
   const { result } = renderHook(useNotebook)
