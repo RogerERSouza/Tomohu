@@ -15,7 +15,9 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 ## Current delivery sequence
 
 - [x] `0.18.0` — Backend accounts: registration, login, short-lived bearer tokens, notebook ownership, migrations, and authorization tests. Frontend account integration is a later delivery.
-- [ ] `0.19.0` — Refactor the frontend by feature, with component and browser regression coverage established before extraction. Preserve current behavior and local data.
+- [x] `0.19.0` — Refactor the frontend by feature, with component and browser regression coverage established before extraction. Preserve current behavior and local data.
+- [x] `0.19.0` review fixes — Resume autosave after confirmed recovery, normalize reminder times, reject invalid counter timestamps, and keep mobile tag controls visible.
+- [x] `0.19.0` validation fixes — Reject inconsistent backups without replacing current data; validate reminder intervals and counter totals, with defensive calendar rendering.
 - [ ] `0.20.0` (planned) — Integrate authenticated accounts and safe synchronization after the frontend refactor; define migration, backup, and conflict-resolution behavior first.
 
 **0.18 validation:** local release checks completed, including 56 tests on native PostgreSQL 17 and manual API ownership/persistence checks. See `docs/versions/0.18.0.md` for the evidence and remaining production limits. Remote CI and PR review must still pass before integration.

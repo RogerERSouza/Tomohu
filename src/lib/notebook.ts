@@ -1,4 +1,7 @@
 import type { Content, CounterEntry, Notebook, Section } from '../types'
+import { isNotebook } from './notebookValidation.ts'
+
+export { isNotebook } from './notebookValidation.ts'
 
 export const STORAGE_KEY = 'task.notebook.v1'
 export const CONTENT_LABELS = {
@@ -92,96 +95,4 @@ export function parseNotebookBackup(text: string): Notebook {
   const parsed: unknown = JSON.parse(text)
   if (!isNotebook(parsed)) throw new Error('Invalid notebook backup')
   return parsed
-}
-
-export function isNotebook(value: unknown): value is Notebook {
-  if (!value || typeof value !== 'object') return false
-  const data = value as Record<string, unknown>
-  const isRecord = (item: unknown): item is Record<string, unknown> =>
-    Boolean(item && typeof item === 'object')
-  const isText = (item: unknown) => typeof item === 'string'
-  const validItems = (items: unknown) =>
-    Array.isArray(items) &&
-    items.every(
-      (item) =>
-        isRecord(item) &&
-        isText(item.id) &&
-        isText(item.text) &&
-        typeof item.completed === 'boolean',
-    )
-  return (
-    data.schemaVersion === 1 &&
-    Array.isArray(data.sections) &&
-    data.sections.every(
-      (section) =>
-        isRecord(section) &&
-        isText(section.id) &&
-        (section.parentId === null || isText(section.parentId)) &&
-        isText(section.title) &&
-        isText(section.emoji) &&
-        isText(section.color) &&
-        (section.favorite === undefined ||
-          typeof section.favorite === 'boolean') &&
-        (section.tags === undefined ||
-          (Array.isArray(section.tags) && section.tags.every(isText))),
-    ) &&
-    Array.isArray(data.reminders) &&
-    data.reminders.every(
-      (reminder) =>
-        isRecord(reminder) &&
-        isText(reminder.id) &&
-        isText(reminder.title) &&
-        isText(reminder.date) &&
-        (reminder.schedule === undefined ||
-          reminder.schedule === 'all-day' ||
-          reminder.schedule === 'time-range') &&
-        (reminder.startTime === undefined || isText(reminder.startTime)) &&
-        (reminder.endDate === undefined || isText(reminder.endDate)) &&
-        (reminder.endTime === undefined || isText(reminder.endTime)) &&
-        (reminder.repeatTimes === undefined ||
-          (Array.isArray(reminder.repeatTimes) &&
-            reminder.repeatTimes.every(isText))) &&
-        (reminder.duration === undefined ||
-          reminder.duration === 'single-day' ||
-          reminder.duration === 'multi-day') &&
-        (reminder.countdownFormat === undefined ||
-          reminder.countdownFormat === 'automatic' ||
-          reminder.countdownFormat === 'days-hours' ||
-          reminder.countdownFormat === 'hours-minutes' ||
-          reminder.countdownFormat === 'minutes-seconds'),
-    ) &&
-    Array.isArray(data.contents) &&
-    data.contents.every((content) => {
-      if (
-        !isRecord(content) ||
-        !isText(content.id) ||
-        !isText(content.sectionId) ||
-        !isText(content.title)
-      )
-        return false
-      switch (content.kind) {
-        case 'note':
-          return isText(content.text)
-        case 'checklist':
-          return validItems(content.items)
-        case 'tutorial':
-          return isText(content.text) && validItems(content.items)
-        case 'counter':
-          return (
-            Array.isArray(content.entries) &&
-            content.entries.every(
-              (entry) =>
-                isRecord(entry) &&
-                isText(entry.id) &&
-                typeof entry.delta === 'number' &&
-                Number.isFinite(entry.delta) &&
-                isText(entry.createdAt) &&
-                isText(entry.note),
-            )
-          )
-        default:
-          return false
-      }
-    })
-  )
 }

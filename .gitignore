@@ -40,3 +40,7 @@ __pycache__/
 *.patch
 *.dump
 *.backup
+
+# Browser regression artifacts
+playwright-report/
+test-results/

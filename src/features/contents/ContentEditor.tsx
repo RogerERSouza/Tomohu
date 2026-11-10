@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { Content, ListItem } from '../types'
-import { getCounterTotal } from '../lib/notebook'
-import { formatDateTime, type HourFormat } from '../lib/time'
-import { Icon } from './Icon'
+import type { Content, ListItem } from '../../types'
+import { getCounterTotal } from '../../lib/notebook'
+import { formatDateTime, type HourFormat } from '../../lib/time'
+import { Icon } from '../../components/Icon'
 import { ListProgress } from './ListProgress'
 
 export function ContentEditor({

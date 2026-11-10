@@ -1,5 +1,11 @@
 import type { Reminder } from '../types'
-import { formatTime, type HourFormat } from './time.ts'
+import {
+  formatTime,
+  isValidDate,
+  isValidTime,
+  isValidTimestamp,
+  type HourFormat,
+} from './time.ts'
 
 export type ReminderDraft = Omit<Reminder, 'id'>
 
@@ -9,20 +15,57 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
 })
 
 function localDate(date: string, time = '00:00'): Date | null {
+  if (!isValidDate(date) || !isValidTime(time)) return null
   const [year, month, day] = date.split('-').map(Number)
   const [hour, minute] = time.split(':').map(Number)
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day) ||
-    !Number.isInteger(hour) ||
-    !Number.isInteger(minute)
+  const result = new Date(0)
+  result.setFullYear(year, month - 1, day)
+  result.setHours(hour, minute, 0, 0)
+  return result
+}
+
+export function isValidReminderInterval(
+  date: string,
+  startTime: string,
+  endDate: string,
+  endTime: string,
+): boolean {
+  return (
+    isValidDate(date) &&
+    isValidDate(endDate) &&
+    isValidTime(startTime) &&
+    isValidTime(endTime) &&
+    `${endDate}T${endTime}` > `${date}T${startTime}`
   )
-    return null
-  const result = new Date(year, month - 1, day, hour, minute)
-  return result.getFullYear() === year && result.getMonth() === month - 1
-    ? result
-    : null
+}
+
+export function isValidReminderSchedule(reminder: ReminderDraft): boolean {
+  const { date, startTime, endDate, endTime, repeatTimes } = reminder
+  if (
+    reminder.schedule
+      ? !isValidDate(date)
+      : !isValidDate(date.slice(0, 10)) ||
+        !isValidTimestamp(date) ||
+        (date.length > 10 && !isValidTime(date.slice(11, 16)))
+  )
+    return false
+  if (
+    (startTime !== undefined && !isValidTime(startTime)) ||
+    (endTime !== undefined && !isValidTime(endTime)) ||
+    (endDate !== undefined &&
+      (!isValidDate(endDate) || endDate < date.slice(0, 10))) ||
+    (repeatTimes !== undefined &&
+      (!repeatTimes.every(isValidTime) ||
+        new Set(repeatTimes).size !== repeatTimes.length))
+  )
+    return false
+  if (reminder.schedule !== 'time-range') return true
+  if (repeatTimes?.length) return true
+  if (!startTime) return false
+  return (
+    endTime === undefined ||
+    isValidReminderInterval(date, startTime, endDate ?? date, endTime)
+  )
 }
 
 export function getDateInputValue(date = new Date()): string {

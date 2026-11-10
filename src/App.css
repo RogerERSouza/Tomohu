@@ -747,6 +747,7 @@ textarea::placeholder {
   white-space: nowrap;
 }
 .tag-field {
+  min-inline-size: 0;
   display: grid;
   gap: 10px;
 }
@@ -754,6 +755,7 @@ textarea::placeholder {
   margin-bottom: 6px;
 }
 .tag-input-row {
+  min-width: 0;
   display: flex;
   gap: 8px;
   padding: 4px;
@@ -763,6 +765,7 @@ textarea::placeholder {
 }
 .tag-input-row input {
   min-width: 0;
+  width: 0;
   flex: 1;
   border: none;
   background: transparent;

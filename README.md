@@ -1,4 +1,4 @@
-# Tomohu · v0.18.0
+# Tomohu · v0.19.0
 
 Organizador pessoal em React e TypeScript. Primeira versão funcional, com armazenamento local e visual baseado no protótipo azul-escuro do Figma.
 
@@ -38,7 +38,15 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Os testes verificam histórico do contador, hierarquia de seções, criação de conteúdos e validação dos dados salvos.
+The standard checks run 26 domain/collection tests and 10 component/persistence tests. Also run the strict type and browser checks:
+
+```powershell
+npm.cmd run typecheck
+npx.cmd playwright install chromium
+npm.cmd run test:e2e
+```
+
+Playwright builds the production frontend, starts its own preview on port 4173, and checks 22 scenarios at desktop (1280×900) and mobile (360×780) sizes. Docker and the API are not required for these frontend tests. Close any existing server on port 4173 first. Run `npx.cmd playwright show-report` to inspect the browser report. The mobile project emulates Chromium touch/viewport behavior; it is not a physical-device test.
 
 ## Backend
 
@@ -64,19 +72,18 @@ python -m ruff check .
 python -m pytest
 ```
 
-## Organização do código
+## Frontend organization
 
-- `src/types.ts`: tipos dos dados, incluindo conteúdos diferenciados por `kind`.
-- `src/data/initialNotebook.ts`: conteúdo de demonstração do primeiro acesso.
-- `src/lib/notebook.ts`: funções de domínio e validação do armazenamento.
-- `src/hooks/useNotebook.ts`: carregamento e salvamento em localStorage.
-- `src/components/`: cartões, editor, ícones e modal acessível.
-- `src/App.tsx`: navegação, página inicial e coordenação das ações.
-- `src/App.css` e `src/index.css`: estilos da interface e regras globais.
+The frontend uses feature modules with a single notebook state owner. See [ADR 0002](docs/architecture/0002-frontend-feature-modules.md) for responsibilities, dependency rules, alternatives, and recovery.
 
-`npm.cmd run format` aplica a formatação com Prettier.
+- `src/app/`: shell, hash routes and dialog composition.
+- `src/pages/`: page composition.
+- `src/features/`: sections, contents, reminders, settings, search, backups and notebook state/persistence.
+- `src/components/` and `src/hooks/`: reusable UI primitives and browser hooks.
+- `src/lib/`, `src/types.ts`, `src/data/`: shared domain rules and contracts.
+- `src/App.css` and `src/index.css`: preserved interface and global styles.
 
-Nomes de código em inglês; textos de interface em português. Componentes usam PascalCase, funções/variáveis camelCase e classes CSS kebab-case.
+Use `npm.cmd run format` for Prettier. English identifiers and technical documentation are required; UI copy remains Portuguese. TypeScript strict mode and ESLint module boundaries are enforced.
 
 ## Planejamento
 
@@ -85,17 +92,17 @@ As regras obrigatórias para alterações ficam em [AGENTS.md](AGENTS.md).
 
 ## Limites desta primeira versão
 
-- Os dados ficam somente neste navegador e origem (protocolo, host e porta). Limpar os dados do site pode removê-los. A exportação JSON é uma cópia dos dados; ainda não há importação pela interface.
+- Os dados ficam somente neste navegador e origem (protocolo, host e porta). Limpar os dados do site pode removê-los. Exporte uma cópia JSON antes de alterações importantes; Ajustes também permite importar um backup válido com confirmação.
 - Use uma aba por vez: ainda não há sincronização de alterações entre abas ou dispositivos.
 - The frontend has no login screen, cloud synchronization, sharing or account recovery yet. Backend authentication is available for API clients.
 - O aplicativo ainda não é uma PWA: não garante abrir sem internet depois que o servidor for encerrado. Persistência local não equivale a um aplicativo offline completo.
 - Lembretes têm data local, duração de um ou vários dias, opção de dia todo, evento contínuo ou horários diários programados e contador automático até o próximo evento. Notificações do sistema ainda ficam para outra etapa.
-- Ainda não há exclusão/lixeira de seções e conteúdos, movimentação entre seções nem reordenação de cartões. Itens de listas podem ser excluídos e reordenados.
+- Seções e conteúdos podem ser excluídos com confirmação; ainda não há lixeira, movimentação entre seções nem reordenação manual de cartões. Itens de listas podem ser excluídos e reordenados.
 - O contador impede números negativos. Correções são registradas com −; entradas do histórico não são apagadas.
 - O exemplo de violetas é um roteiro de organização/pesquisa, não uma orientação de cultivo verificada.
 
 ## Versões e Git
 
-`0.18.0` identifies this backend authentication milestone. GitHub Pages publishes the frontend after a push to `main`. Version `0.19.0` is reserved for frontend refactoring; account integration and synchronization follow separately.
+`0.19.0` identifies the frontend architecture milestone. GitHub Pages publishes the frontend after a push to `main`. Backend authentication remains the 0.18 implementation. Account UI and synchronization are planned separately for 0.20. See the [0.19 release record](docs/versions/0.19.0.md).
 
 Commits futuros: `feat: add ...`, `fix: correct ...`, `refactor: extract ...`. Uma versão pode reunir vários commits.

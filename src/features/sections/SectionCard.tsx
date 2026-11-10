@@ -1,5 +1,5 @@
-import type { Section } from '../types'
-import { Icon } from './Icon'
+import type { Section } from '../../types'
+import { Icon } from '../../components/Icon'
 
 export function SectionCard({
   section,
