@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SetStateAction } from 'react'
 import { ApiError, apiErrorMessage } from '../../lib/api/client'
 import type { ApiClient, RemoteNotebook } from '../../lib/api/client'
@@ -9,6 +9,7 @@ import {
   saveWorkspace,
   workspaceKey,
 } from './workspaceStorage'
+import type { WorkspaceCache } from './workspaceStorage'
 
 export function useAccountNotebook(
   ownerId: string,
@@ -17,7 +18,7 @@ export function useAccountNotebook(
   onExpired: () => void,
 ) {
   const [initial] = useState(() => loadWorkspace(ownerId, remote))
-  const [notebook, setNotebook] = useState(initial.cache.snapshot)
+  const [notebook, updateNotebook] = useState(initial.cache.snapshot)
   const [base, setBase] = useState(initial.cache.base)
   const [blocked, setBlocked] = useState(initial.blocked)
   const [conflict, setConflict] = useState(initial.conflict)
@@ -29,6 +30,10 @@ export function useAccountNotebook(
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
+  const paused = useRef(initial.blocked)
+  const stored = useRef(initial.raw)
+  const edits = useRef(0)
+  const externalChanges = useRef(0)
   const generation = useRef(0)
   useEffect(
     () => () => {
@@ -37,11 +42,39 @@ export function useAccountNotebook(
     [],
   )
   const dirty = !sameNotebook(notebook, base.snapshot)
+  const pauseForExternalChange = useCallback(() => {
+    externalChanges.current++
+    paused.current = true
+    try {
+      localStorage.setItem(
+        `tomohu.recovery.${ownerId}.${base.id}.${crypto.randomUUID()}`,
+        JSON.stringify({ version: 1, ownerId, base, snapshot: notebook }),
+      )
+    } catch {
+      /* The open snapshot remains exportable when storage is unavailable. */
+    }
+    setBlocked(true)
+    setStorageError(
+      'Outra aba alterou este caderno. O salvamento foi pausado; exporte a cópia aberta antes de recuperar.',
+    )
+  }, [ownerId, base, notebook])
+  const persist = useCallback(
+    (cache: WorkspaceCache, expected = stored.current) => {
+      if (localStorage.getItem(workspaceKey(ownerId, base.id)) !== expected) {
+        pauseForExternalChange()
+        return false
+      }
+      saveWorkspace(cache)
+      stored.current = JSON.stringify(cache)
+      return true
+    },
+    [ownerId, base.id, pauseForExternalChange],
+  )
   useEffect(() => {
-    if (blocked) return
+    if (paused.current) return
     let active = true
     try {
-      saveWorkspace({ version: 1, ownerId, base, snapshot: notebook })
+      persist({ version: 1, ownerId, base, snapshot: notebook })
     } catch {
       queueMicrotask(() => {
         if (active)
@@ -53,35 +86,36 @@ export function useAccountNotebook(
     return () => {
       active = false
     }
-  }, [base, notebook, ownerId, blocked])
+  }, [base, notebook, ownerId, blocked, persist])
   useEffect(() => {
     function changed(event: StorageEvent) {
-      if (event.key !== workspaceKey(ownerId, base.id)) return
-      try {
-        localStorage.setItem(
-          `tomohu.recovery.${ownerId}.${base.id}.${crypto.randomUUID()}`,
-          JSON.stringify({ version: 1, ownerId, base, snapshot: notebook }),
-        )
-      } catch {
-        /* The open snapshot remains exportable when storage is unavailable. */
-      }
-      setBlocked(true)
-      setStorageError(
-        'Outra aba alterou este caderno. O salvamento foi pausado; exporte a cópia aberta antes de recuperar.',
+      if (
+        (event.storageArea && event.storageArea !== localStorage) ||
+        (event.key !== null && event.key !== workspaceKey(ownerId, base.id))
       )
+        return
+      pauseForExternalChange()
     }
     window.addEventListener('storage', changed)
     return () => window.removeEventListener('storage', changed)
-  }, [ownerId, base, notebook])
+  }, [ownerId, base.id, pauseForExternalChange])
+  function setNotebook(value: SetStateAction<Notebook>) {
+    edits.current++
+    updateNotebook(value)
+  }
   function replaceNotebook(snapshot: Notebook) {
-    if (blocked) {
+    if (pending.current) {
+      setMessage('Aguarde a operação da conta terminar antes de importar.')
+      return false
+    }
+    if (paused.current) {
       setMessage(
         'Exporte o cache preservado e recupere a versão da conta antes de importar.',
       )
       return false
     }
     try {
-      saveWorkspace({ version: 1, ownerId, base, snapshot })
+      if (!persist({ version: 1, ownerId, base, snapshot })) return false
       setNotebook(snapshot)
       setStorageError('')
       return true
@@ -93,7 +127,7 @@ export function useAccountNotebook(
     }
   }
   async function request(
-    action: (client: ApiClient) => Promise<RemoteNotebook>,
+    action: (client: ApiClient) => Promise<RemoteNotebook | null>,
   ) {
     if (pending.current || !api) return
     const requestId = generation.current
@@ -102,7 +136,7 @@ export function useAccountNotebook(
     setMessage('')
     try {
       const result = await action(api)
-      if (requestId !== generation.current) return
+      if (requestId !== generation.current || !result) return
       setBase(result)
       setConflict(false)
     } catch (error) {
@@ -116,10 +150,10 @@ export function useAccountNotebook(
     }
   }
   async function sync() {
-    if (blocked || conflict) return
+    if (pending.current || paused.current || conflict) return
     const snapshot = notebook
     try {
-      saveWorkspace({ version: 1, ownerId, base, snapshot })
+      if (!persist({ version: 1, ownerId, base, snapshot })) return
     } catch {
       setStorageError(
         'Não foi possível preservar sua cópia local. Exporte antes de sincronizar.',
@@ -130,17 +164,44 @@ export function useAccountNotebook(
     await request((client) => client.save(base.id, base.revision, snapshot))
   }
   async function loadRemote() {
+    if (pending.current || !api) return
+    let expected: string | null
+    try {
+      expected = localStorage.getItem(workspaceKey(ownerId, base.id))
+    } catch {
+      setStorageError(
+        'Não foi possível ler o cache. Exporte antes de recuperar.',
+      )
+      return
+    }
+    if (!paused.current && expected !== stored.current) {
+      pauseForExternalChange()
+      return
+    }
     const requestId = generation.current
+    const editVersion = edits.current
+    const externalVersion = externalChanges.current
     await request(async (client) => {
       const latest = await client.get(base.id)
-      if (requestId !== generation.current) return latest
-      saveWorkspace({
-        version: 1,
-        ownerId,
-        base: latest,
-        snapshot: latest.snapshot,
-      })
-      setNotebook(latest.snapshot)
+      if (requestId !== generation.current) return null
+      if (
+        editVersion !== edits.current ||
+        externalVersion !== externalChanges.current
+      ) {
+        setMessage(
+          'A cópia local mudou durante o carregamento. Nada foi substituído; revise e confirme novamente.',
+        )
+        return null
+      }
+      if (
+        !persist(
+          { version: 1, ownerId, base: latest, snapshot: latest.snapshot },
+          expected,
+        )
+      )
+        return null
+      updateNotebook(latest.snapshot)
+      paused.current = false
       setBlocked(false)
       setStorageError('')
       return latest
@@ -156,7 +217,7 @@ export function useAccountNotebook(
   }
   return {
     notebook,
-    setNotebook: (value: SetStateAction<Notebook>) => setNotebook(value),
+    setNotebook,
     replaceNotebook,
     storageError,
     dirty,

@@ -1,0 +1,110 @@
+{
+  "optionalNulls": {
+    "request": {
+      "schemaVersion": 1,
+      "sections": [
+        {
+          "id": "s",
+          "title": "Root",
+          "emoji": "",
+          "color": "#123456"
+        }
+      ],
+      "contents": [],
+      "reminders": [
+        {
+          "id": "r",
+          "title": "Reminder",
+          "date": "2030-05-10",
+          "schedule": null,
+          "startTime": null,
+          "endDate": null,
+          "endTime": null,
+          "repeatTimes": null,
+          "duration": null,
+          "countdownFormat": null
+        }
+      ]
+    },
+    "canonical": {
+      "schemaVersion": 1,
+      "sections": [
+        {
+          "parentId": null,
+          "id": "s",
+          "title": "Root",
+          "emoji": "",
+          "color": "#123456"
+        }
+      ],
+      "contents": [],
+      "reminders": [
+        {
+          "id": "r",
+          "title": "Reminder",
+          "date": "2030-05-10"
+        }
+      ]
+    }
+  },
+  "legacyCounter": {
+    "local": {
+      "schemaVersion": 1,
+      "sections": [
+        {
+          "parentId": null,
+          "id": "s",
+          "title": "Root",
+          "emoji": "",
+          "color": "#123456"
+        }
+      ],
+      "contents": [
+        {
+          "id": "c",
+          "sectionId": "s",
+          "title": "Counter",
+          "kind": "counter",
+          "entries": [
+            {
+              "id": "e",
+              "delta": 1,
+              "note": "",
+              "createdAt": "Wed, 01 Jan 2025 00:00:00 GMT"
+            }
+          ]
+        }
+      ],
+      "reminders": []
+    },
+    "canonical": {
+      "schemaVersion": 1,
+      "sections": [
+        {
+          "parentId": null,
+          "id": "s",
+          "title": "Root",
+          "emoji": "",
+          "color": "#123456"
+        }
+      ],
+      "contents": [
+        {
+          "id": "c",
+          "sectionId": "s",
+          "title": "Counter",
+          "kind": "counter",
+          "entries": [
+            {
+              "id": "e",
+              "delta": 1,
+              "note": "",
+              "createdAt": "2025-01-01T00:00:00.000Z"
+            }
+          ]
+        }
+      ],
+      "reminders": []
+    }
+  }
+}

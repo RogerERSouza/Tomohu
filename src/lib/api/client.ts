@@ -1,4 +1,5 @@
-import { AccountDataError, validateAccountData } from './limits.ts'
+import { AccountDataError } from './limits.ts'
+import { prepareAccountSnapshot } from './snapshot.ts'
 import { isNotebook } from '../notebookValidation.ts'
 import type { Notebook } from '../../types'
 
@@ -136,15 +137,15 @@ export function createApiClient(origin: string, token = '') {
       return value
     },
     async create(snapshot: Notebook) {
-      validateAccountData(snapshot)
-      return remote(await request('/notebooks', 'POST', { snapshot }))
+      const prepared = prepareAccountSnapshot(snapshot)
+      return remote(await request('/notebooks', 'POST', { snapshot: prepared }))
     },
     async save(id: string, revision: number, snapshot: Notebook) {
-      validateAccountData(snapshot)
+      const prepared = prepareAccountSnapshot(snapshot)
       const value = remote(
         await request(`/notebooks/${encodeURIComponent(id)}`, 'PUT', {
           revision,
-          snapshot,
+          snapshot: prepared,
         }),
       )
       if (value.id !== id || value.revision !== revision + 1)

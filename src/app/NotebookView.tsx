@@ -136,6 +136,7 @@ export function NotebookView({
       {editor && (
         <EditorDialog
           editor={editor}
+          importBlocked={interactionBlocked}
           setEditor={setEditor}
           currentSection={currentSection}
           preferences={preferences}

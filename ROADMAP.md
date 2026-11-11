@@ -20,6 +20,8 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 - [x] `0.19.0` validation fixes — Reject inconsistent backups without replacing current data; validate reminder intervals and counter totals, with defensive calendar rendering.
 - [x] `0.20.0` (implementation validated; release checks pending) — Account registration/login, owner-scoped notebook discovery, isolated browser caches and explicit revision-checked synchronization. Preserve guest data; never upload or overwrite it implicitly.
 
+- [x] `0.20.0` review fixes — Guard destructive recovery against local edits and external cache changes; block overlapping imports; normalize nullable API fields and outbound legacy counter timestamps without rewriting guest backups.
+
 **0.18 validation:** local release checks completed, including 56 tests on native PostgreSQL 17 and manual API ownership/persistence checks. See `docs/versions/0.18.0.md` for the evidence and remaining production limits. Remote CI and PR review must still pass before integration.
 
 Each substantial architecture change receives its own minor release and reviewable baseline. Never combine frontend restructuring and synchronization in one release.
@@ -114,7 +116,7 @@ Each substantial architecture change receives its own minor release and reviewab
 - [ ] Onboarding após criar a conta: escolher idioma, tema claro/escuro padrão, formato de hora (12/24h) e outras preferências de qualidade de vida, todas alteráveis depois em Configurações.
 - [x] Backend notebook ownership and access isolation. — `0.18.0`
 - [x] Explicit guest-to-account copies, isolated caches, manual revision-checked synchronization and backup export. — `0.20.0`
-- [x] Correct live-test cleanup: close the owned Windows API process tree and avoid temporary log handles. Native Windows rerun pending.
+- [x] Correct live-test cleanup: close the owned Windows API process tree and avoid temporary log handles. Native Windows cleanup verified; repeat live integration after subsequent changes.
 - [ ] Automatic background synchronization after a separate conflict/retry design.
 - [ ] Production HTTPS API hosting and operational readiness review.
 - [ ] Sessões privadas protegidas por senha.

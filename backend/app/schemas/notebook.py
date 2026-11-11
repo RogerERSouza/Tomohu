@@ -16,6 +16,13 @@ class SectionSnapshot(StrictModel):
     favorite: bool = False
     tags: list[str] = Field(default_factory=list, max_length=20)
 
+    @model_validator(mode="before")
+    @classmethod
+    def include_root_parent(cls, value: object) -> object:
+        if isinstance(value, dict):
+            return {"parentId": None, **value}
+        return value
+
 
 class ListItemSnapshot(StrictModel):
     id: str = Field(min_length=1, max_length=36)
@@ -65,6 +72,26 @@ class ReminderSnapshot(StrictModel):
     countdownFormat: (
         Literal["automatic", "days-hours", "hours-minutes", "minutes-seconds"] | None
     ) = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def omit_optional_nulls(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        optional = {
+            "schedule",
+            "startTime",
+            "endDate",
+            "endTime",
+            "repeatTimes",
+            "duration",
+            "countdownFormat",
+        }
+        return {
+            key: item
+            for key, item in value.items()
+            if item is not None or key not in optional
+        }
 
 
 class NotebookSnapshot(StrictModel):

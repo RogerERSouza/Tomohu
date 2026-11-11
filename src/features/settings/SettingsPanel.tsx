@@ -13,6 +13,7 @@ export function SettingsPanel({
   onImport,
   importError,
   accountPanel,
+  importBlocked = false,
 }: {
   theme: Theme
   setTheme: (theme: Theme) => void
@@ -21,6 +22,7 @@ export function SettingsPanel({
   onExport: () => void
   onImport: () => void
   importError: string
+  importBlocked?: boolean
   accountPanel?: ReactNode
 }) {
   return (
@@ -87,9 +89,18 @@ export function SettingsPanel({
         <Icon name="download" />
         Exportar cópia dos dados
       </button>
-      <button className="secondary-button" onClick={onImport}>
+      <button
+        className="secondary-button"
+        onClick={onImport}
+        disabled={importBlocked}
+      >
         Importar cópia dos dados
       </button>
+      {importBlocked && (
+        <p role="status">
+          Aguarde a operação da conta terminar antes de importar.
+        </p>
+      )}
       {importError && (
         <p className="form-warning" role="alert">
           {importError}

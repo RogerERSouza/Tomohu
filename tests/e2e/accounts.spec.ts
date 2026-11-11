@@ -410,3 +410,140 @@ test('guest storage failure requires a real backup before opening another worksp
     ),
   ).toEqual(fixture)
 })
+
+test('pending remote loads block imports until completion and later imports persist', async ({
+  page,
+}) => {
+  await mockApi(page)
+  await settings(page)
+  await login(page)
+  await openBook(page)
+  await settings(page)
+  let release: () => void = () => {}
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let requested: () => void = () => {}
+  const started = new Promise<void>((resolve) => {
+    requested = resolve
+  })
+  await page.route(`${origin}/api/v1/notebooks/book`, async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback()
+    requested()
+    await gate
+    await route.fulfill({
+      json: { id: 'book', revision: 1, snapshot: fixture },
+    })
+  })
+  await page
+    .getByRole('button', { name: 'Carregar versão da conta', exact: true })
+    .click()
+  await started
+  await expect(
+    page.getByRole('button', { name: 'Importar cópia dos dados', exact: true }),
+  ).toBeDisabled()
+  const imported = structuredClone(fixture)
+  for (const item of imported.contents)
+    if (item.kind === 'note') item.text = 'Imported after remote recovery'
+  // A file chooser/read may already be in flight when the remote operation starts.
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'pending.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(imported)),
+  })
+  const replace = page.getByRole('button', {
+    name: 'Substituir dados',
+    exact: true,
+  })
+  await expect(replace).toBeDisabled()
+  await expect(
+    page.getByText('Aguarde a operação da conta terminar antes de importar.'),
+  ).toBeVisible()
+  release()
+  await expect(replace).toBeEnabled()
+  await replace.click()
+  await page.goto('/#content/note')
+  await expect(page.getByLabel('Sua nota')).toHaveValue(
+    'Imported after remote recovery',
+  )
+  await page.reload()
+  await settings(page)
+  await login(page)
+  await openBook(page)
+  await page.goto('/#content/note')
+  await expect(page.getByLabel('Sua nota')).toHaveValue(
+    'Imported after remote recovery',
+  )
+})
+
+test('remote recovery preserves a different tab draft even after that tab closes', async ({
+  page,
+  context,
+}) => {
+  await mockApi(page)
+  await settings(page)
+  await login(page)
+  await openBook(page)
+  const other = await context.newPage()
+  await mockApi(other)
+  await other.goto('/')
+  await settings(other)
+  await login(other)
+  await openBook(other)
+  await settings(page)
+  let release: () => void = () => {}
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let requested: () => void = () => {}
+  const started = new Promise<void>((resolve) => {
+    requested = resolve
+  })
+  await page.route(`${origin}/api/v1/notebooks/book`, async (route) => {
+    requested()
+    await gate
+    await route.fulfill({
+      json: { id: 'book', revision: 1, snapshot: fixture },
+    })
+  })
+  await page
+    .getByRole('button', { name: 'Carregar versão da conta', exact: true })
+    .click()
+  await started
+  await other.goto('/#content/note')
+  await other.getByLabel('Sua nota').fill('Other tab durable draft')
+  await expect(
+    page.getByRole('button', {
+      name: 'Exportar cache preservado',
+      exact: true,
+    }),
+  ).toBeVisible()
+  await other.close()
+  release()
+  await expect(
+    page.getByRole('button', { name: 'Carregar versão da conta', exact: true }),
+  ).toBeDisabled()
+  const key = 'tomohu.account.v1.alice.book'
+  await expect
+    .poll(() => page.evaluate((key) => localStorage.getItem(key), key))
+    .toContain('Other tab durable draft')
+  const downloading = page.waitForEvent('download')
+  await page
+    .getByRole('button', { name: 'Exportar cache preservado', exact: true })
+    .click()
+  const stream = await (await downloading).createReadStream()
+  if (!stream) throw new Error('Recovery stream unavailable')
+  let text = ''
+  for await (const chunk of stream) text += chunk.toString()
+  expect(text).toContain('Other tab durable draft')
+  await page.getByLabel(/Já exportei o que preciso/).check()
+  await page
+    .getByRole('button', { name: 'Carregar versão da conta', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', {
+      name: 'Exportar cache preservado',
+      exact: true,
+    }),
+  ).toHaveCount(0)
+})

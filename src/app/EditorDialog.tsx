@@ -13,6 +13,7 @@ import type { Editor } from './editor'
 import { navigate } from './useNotebookRoute'
 
 type Props = {
+  importBlocked: boolean
   editor: NonNullable<Editor>
   setEditor: Dispatch<SetStateAction<Editor>>
   currentSection: Section | undefined
@@ -27,6 +28,7 @@ type Props = {
 }
 export function EditorDialog({
   editor,
+  importBlocked,
   setEditor,
   currentSection,
   preferences,
@@ -63,6 +65,7 @@ export function EditorDialog({
       {editor.kind === 'settings' && (
         <SettingsPanel
           {...preferences}
+          importBlocked={importBlocked}
           onExport={exportNotebook}
           onImport={onImport}
           importError={importError}
@@ -72,6 +75,7 @@ export function EditorDialog({
       {editor.kind === 'import-backup' && (
         <ImportBackupPanel
           fileName={editor.fileName}
+          blocked={importBlocked}
           onExport={exportNotebook}
           onBack={() => setEditor({ kind: 'settings' })}
           onReplace={() => {

@@ -2,6 +2,14 @@
 
 ## 0.20.0 — 2026-11-09
 
+### Fixed after branch review
+
+- Block overlapping imports and ignore destructive remote responses after local edits or another tab changes the account cache.
+- Preserve external drafts until a new explicit recovery, including delayed storage events; retain browser recovery/export controls.
+- Omit nullable optional reminder fields and include root section parents in API responses, including previously stored snapshots.
+- Normalize legacy counter timestamps only in outbound account copies; compare equivalent timestamps and object key orders without false pending-sync status.
+- Add shared API/frontend contract fixtures, controller regressions and real two-tab browser coverage. See `docs/versions/0.20.0-review-fixes.md`.
+
 ### Added
 
 - Optional account registration/login, owner-scoped notebook discovery and explicit guest-copy transfer without changing the guest notebook.

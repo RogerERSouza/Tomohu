@@ -8,6 +8,21 @@ test('real API registration, guest copy and revision-checked sync persist across
     process.env.TOMOHU_LIVE_API !== '1',
     'Requires the isolated live API configured by the integration job.',
   )
+  const guest = structuredClone(fixture)
+  const counter = guest.contents.find((content) => content.kind === 'counter')
+  if (!counter || counter.kind !== 'counter')
+    throw new Error('Missing counter fixture')
+  counter.entries.push({
+    id: 'legacy-entry',
+    delta: 1,
+    note: '',
+    createdAt: 'Wed, 01 Jan 2025 00:00:00 GMT',
+  })
+  await page.evaluate(
+    ({ key, snapshot }) => localStorage.setItem(key, JSON.stringify(snapshot)),
+    { key: storageKey, snapshot: guest },
+  )
+  await page.reload()
   const email = `integration-${randomUUID()}@example.com`
   const password = 'Live account test password 123!'
   await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
@@ -35,7 +50,7 @@ test('real API registration, guest copy and revision-checked sync persist across
       (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
       storageKey,
     ),
-  ).toEqual(fixture)
+  ).toEqual(guest)
   // Remove only the acknowledged account cache to prove the next load comes from the API.
   await page.evaluate(() => {
     for (const key of Object.keys(localStorage))
