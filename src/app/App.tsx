@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
+import { AccountAction } from '../features/account/AccountAction'
+import { readAccountLink } from '../features/account/accountLink'
 import { AccountPanel } from '../features/account/AccountPanel'
 import { useAccount } from '../features/account/useAccount'
 import type { AccountController } from '../features/account/useAccount'
@@ -69,7 +72,20 @@ function ConnectedWorkspace({
 }
 export default function App() {
   const account = useAccount()
-  return account.workspace ? (
+  const [action, setAction] = useState(() =>
+    readAccountLink(window.location.hash),
+  )
+  const previousRoute = useRef(action ? '' : window.location.hash)
+  useEffect(() => {
+    const changed = () => {
+      const next = readAccountLink(window.location.hash)
+      if (next) setAction(next)
+      else previousRoute.current = window.location.hash
+    }
+    window.addEventListener('hashchange', changed)
+    return () => window.removeEventListener('hashchange', changed)
+  }, [])
+  const workspace = account.workspace ? (
     <ConnectedWorkspace
       key={`${account.workspace.ownerId}:${account.workspace.remote.id}:${account.workspace.remote.revision}`}
       account={account}
@@ -78,5 +94,22 @@ export default function App() {
     />
   ) : (
     <GuestWorkspace account={account} />
+  )
+  return (
+    <>
+      {action && (
+        <AccountAction
+          key={`${action.purpose}:${action.token}`}
+          action={action}
+          onReset={account.expire}
+          onClose={() => {
+            setAction(null)
+            window.location.hash = previousRoute.current
+            window.dispatchEvent(new HashChangeEvent('hashchange'))
+          }}
+        />
+      )}
+      <div hidden={Boolean(action)}>{workspace}</div>
+    </>
   )
 }

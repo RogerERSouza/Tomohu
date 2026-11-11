@@ -17,7 +17,9 @@ class InvalidToken(Exception):
     pass
 
 
-def create_access_token(user_id: str, settings: Settings) -> str:
+def create_access_token(
+    user_id: str, settings: Settings, session_id: str | None = None
+) -> str:
     now = datetime.now(UTC)
     return jwt.encode(
         {
@@ -27,7 +29,7 @@ def create_access_token(user_id: str, settings: Settings) -> str:
             "exp": now + timedelta(minutes=settings.access_token_minutes),
             "iss": ISSUER,
             "aud": AUDIENCE,
-            "jti": str(uuid4()),
+            "jti": session_id or str(uuid4()),
             "token_type": "access",
         },
         settings.jwt_secret,
@@ -35,7 +37,7 @@ def create_access_token(user_id: str, settings: Settings) -> str:
     )
 
 
-def read_access_token(token: str, settings: Settings) -> str:
+def read_access_claims(token: str, settings: Settings) -> tuple[str, str]:
     try:
         claims = jwt.decode(
             token,
@@ -66,6 +68,6 @@ def read_access_token(token: str, settings: Settings) -> str:
             or claims["exp"] - claims["iat"] > settings.access_token_minutes * 60
         ):
             raise InvalidToken()
-        return subject
+        return subject, str(UUID(claims["jti"]))
     except (jwt.InvalidTokenError, ValueError, TypeError, AttributeError) as error:
         raise InvalidToken() from error

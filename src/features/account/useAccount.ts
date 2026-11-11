@@ -34,6 +34,7 @@ export function useAccount() {
   } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const pending = useRef(false)
   const generation = useRef(0)
   useEffect(
@@ -80,7 +81,9 @@ export function useAccount() {
         error instanceof ApiError &&
         error.status === 422
       )
-        setError('Confira o e-mail e use uma senha de 15 a 128 caracteres.')
+        setError(
+          'Confira o e-mail e a senha. Para criar uma senha, use de 5 a 128 caracteres, com maiúscula, minúscula e número.',
+        )
       else setError(apiErrorMessage(error))
     } finally {
       pending.current = false
@@ -92,6 +95,7 @@ export function useAccount() {
     password: string,
     register: boolean,
   ) {
+    setNotice('')
     await run(async () => {
       const request = generation.current
       const guest = createApiClient(origin)
@@ -102,7 +106,11 @@ export function useAccount() {
       if (request !== generation.current) return
       setSession({ user, ...credentials })
       setItems(owned)
-      setWorkspace(null)
+      setWorkspace((current) => (current?.ownerId === user.id ? current : null))
+      if (register)
+        setNotice(
+          'Conta criada. Confira o e-mail para confirmar seu endereço; o link expira em 30 minutos.',
+        )
     }, true)
   }
   async function refresh() {
@@ -131,13 +139,35 @@ export function useAccount() {
       window.location.hash = ''
     })
   }
-  function logout() {
+  async function requestReset(email: string) {
+    setError('')
+    try {
+      await createApiClient(origin).requestReset(email)
+    } catch (error) {
+      setError(apiErrorMessage(error))
+      throw error
+    }
+  }
+  async function logout() {
     if (pending.current) return
+    if (api) {
+      let ended = false
+      await run(async () => {
+        try {
+          await api.logout()
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 401)) throw error
+        }
+        ended = true
+      })
+      if (!ended) return
+    }
     generation.current++
     setSession(null)
     setWorkspace(null)
     setItems([])
     setError('')
+    setNotice('')
     window.location.hash = ''
   }
   return {
@@ -147,7 +177,11 @@ export function useAccount() {
     workspace,
     busy,
     error,
+    notice,
+    setNotice,
+    requestReset,
     api,
+    perform: run,
     authenticate,
     open,
     refresh,

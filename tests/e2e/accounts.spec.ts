@@ -35,6 +35,8 @@ async function mockApi(page: Page) {
         json: value,
         headers: { 'Access-Control-Allow-Origin': '*' },
       })
+    if (path === '/api/v1/auth/logout')
+      return reply({ message: 'Session ended.' })
     if (path === '/api/v1/auth/register')
       return reply(
         { id: 'alice', email: 'alice@example.com' },
@@ -130,6 +132,9 @@ test('guest migration is explicit; sync, logout and account switching preserve i
   await page
     .getByRole('button', { name: 'Sair e voltar ao caderno local' })
     .click()
+  await expect(
+    page.getByText('Caderno da conta ·', { exact: false }),
+  ).toHaveCount(0)
   await page.goto('/#content/note')
   await expect(page.getByLabel('Sua nota')).toHaveValue('Texto pesquisável')
   await settings(page)

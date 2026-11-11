@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 0.21.0
+
+- Clarify password reset success, space account-link forms and prevent accidental dialog dismissal from padding or backdrop clicks.
+
+- Add expiring, single-use email verification and password recovery links with a durable delivery queue and local/SMTP mail worker.
+- Add password changes and owner-scoped session listing/revocation. Reset/change revokes all sessions without changing notebooks or recovery caches.
+- Apply the requested 5–128 character uppercase/lowercase/digit policy to new passwords while accepting existing passwords at login.
+- Keep access tokens in memory and require login after reload; preserve explicit synchronization and local guest data.
+- Add migration, mail delivery, authentication and desktop/mobile regression coverage.
+
 ## 0.20.0 — 2026-11-09
 
 ### Fixed after branch review

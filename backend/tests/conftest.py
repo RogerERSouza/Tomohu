@@ -13,7 +13,7 @@ from sqlalchemy.engine import make_url
 from app.core.config import Settings, get_settings
 from app.main import create_app
 
-PASSWORD = "a long test password 123!"
+PASSWORD = "A long test password 123!"
 
 
 @pytest.fixture

@@ -5,8 +5,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.database import session_scope
-from app.core.security import InvalidToken, read_access_token
+from app.core.security import InvalidToken, read_access_claims
 from app.models.user import User
+from app.services.account import AccountService
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -29,7 +30,12 @@ def require_user(
     if credentials is None:
         raise unauthorized
     try:
-        user_id = read_access_token(credentials.credentials, request.app.state.settings)
+        user_id, session_id = read_access_claims(
+            credentials.credentials, request.app.state.settings
+        )
+        if not AccountService().valid_session(session, user_id, session_id):
+            raise InvalidToken()
+        request.state.session_id = session_id
     except InvalidToken:
         raise unauthorized from None
     user = session.get(User, user_id)

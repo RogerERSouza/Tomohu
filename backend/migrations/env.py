@@ -4,6 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
+from app.models.account import AccountToken, AuthSession  # noqa: F401
 from app.models.base import Base
 from app.models.notebook import NotebookRecord  # noqa: F401
 from app.models.user import User  # noqa: F401

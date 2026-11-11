@@ -15,7 +15,7 @@ def test_registration_normalizes_email_and_never_returns_password(client):
         json={"email": "Alice@EXAMPLE.COM", "password": PASSWORD},
     )
     assert response.status_code == 201
-    assert set(response.json()) == {"id", "email"}
+    assert set(response.json()) == {"id", "email", "email_verified"}
     assert response.json()["email"] == "alice@example.com"
     with client.app.state.engine.connect() as connection:
         encoded = connection.execute(
@@ -42,7 +42,7 @@ def test_login_and_current_user(client):
     response = client.get("/api/v1/auth/me", headers=headers)
     assert response.status_code == 200
     assert response.json()["email"] == "alice@example.com"
-    assert set(response.json()) == {"id", "email"}
+    assert set(response.json()) == {"id", "email", "email_verified"}
     assert response.headers["cache-control"] == "no-store"
 
 
@@ -220,7 +220,7 @@ def test_cors_allows_configured_origin_and_rejects_other_origins(client):
 
 def test_openapi_documents_bearer_and_redacts_password_schema(client):
     schema = client.get("/openapi.json").json()
-    assert schema["info"]["version"] == "0.20.0"
+    assert schema["info"]["version"] == "0.21.0"
     assert schema["paths"]["/api/v1/notebooks"]["post"]["security"] == [
         {"HTTPBearer": []}
     ]

@@ -44,3 +44,5 @@ __pycache__/
 # Browser regression artifacts
 playwright-report/
 test-results/
+
+backend/.outbox/

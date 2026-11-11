@@ -6,6 +6,13 @@ import type { Notebook } from '../../types'
 export interface AccountUser {
   id: string
   email: string
+  emailVerified?: boolean
+}
+export interface AccountSession {
+  id: string
+  current: boolean
+  created_at: string
+  expires_at: string
 }
 export interface RemoteNotebook {
   id: string
@@ -92,6 +99,51 @@ export function createApiClient(origin: string, token = '') {
     }
   }
   return {
+    async requestReset(email: string) {
+      await request('/auth/password/reset-request', 'POST', { email })
+    },
+    async verifyEmail(token: string) {
+      await request('/auth/email/verify', 'POST', { token })
+    },
+    async resetPassword(token: string, password: string) {
+      await request('/auth/password/reset', 'POST', { token, password })
+    },
+    async requestVerification() {
+      await request('/auth/email/request', 'POST')
+    },
+    async changePassword(currentPassword: string, password: string) {
+      await request('/auth/password/change', 'POST', {
+        current_password: currentPassword,
+        password,
+      })
+    },
+    async sessions(): Promise<AccountSession[]> {
+      const value = await request('/auth/sessions')
+      if (
+        !Array.isArray(value) ||
+        !value.every(
+          (item: unknown) =>
+            record(item) &&
+            identifier(item.id) &&
+            typeof item.current === 'boolean' &&
+            typeof item.created_at === 'string' &&
+            Number.isFinite(Date.parse(item.created_at)) &&
+            typeof item.expires_at === 'string' &&
+            Number.isFinite(Date.parse(item.expires_at)),
+        )
+      )
+        throw new ApiError(502)
+      return value as AccountSession[]
+    },
+    async revokeSession(id: string) {
+      await request(`/auth/sessions/${encodeURIComponent(id)}`, 'DELETE')
+    },
+    async revokeAllSessions() {
+      await request('/auth/sessions/revoke-all', 'POST')
+    },
+    async logout() {
+      await request('/auth/logout', 'POST')
+    },
     async register(email: string, password: string) {
       await request('/auth/register', 'POST', { email, password })
     },
@@ -121,7 +173,16 @@ export function createApiClient(origin: string, token = '') {
         typeof value.email !== 'string'
       )
         throw new ApiError(502)
-      return { id: value.id, email: value.email }
+      if (
+        value.email_verified !== undefined &&
+        typeof value.email_verified !== 'boolean'
+      )
+        throw new ApiError(502)
+      return {
+        id: value.id,
+        email: value.email,
+        emailVerified: value.email_verified === true,
+      }
     },
     async list(): Promise<NotebookSummary[]> {
       const value = await request('/notebooks')

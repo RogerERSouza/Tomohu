@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
+from app.api.routes.account import router as account_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as health_router
 from app.api.routes.notebooks import router as notebooks_router
@@ -19,7 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     active_settings = settings or get_settings()
     app = FastAPI(
         title=active_settings.app_name,
-        version="0.20.0",
+        version="0.21.0",
         description="Tomohu API.",
     )
     app.state.auth_limiter = AuthRateLimiter()
@@ -75,6 +76,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return response
 
     app.include_router(auth_router)
+    app.include_router(account_router)
     app.include_router(health_router)
     app.include_router(notebooks_router)
     return app

@@ -32,6 +32,11 @@ def test_unsafe_production_settings_fail_closed(overrides):
         cors_origins=("https://example.com",),
         jwt_secret="test-secret-" * 4,
         database_url="postgresql+psycopg://localhost/test",
+        frontend_url="https://example.com/Tomohu/",
+        mail_mode="smtp",
+        smtp_host="smtp.example.com",
+        smtp_username="test",
+        smtp_password="secret",
     )
     values.update(overrides)
     with pytest.raises(ValueError):
@@ -45,3 +50,30 @@ def test_settings_hide_secret_and_local_instances_have_independent_keys():
     assert first.jwt_secret not in repr(first)
     with pytest.raises(ValueError):
         Settings("Test", "typo", ())
+
+
+def test_production_email_settings_and_secrets():
+    values = dict(
+        app_name="Test",
+        environment="production",
+        cors_origins=("https://example.com",),
+        database_url="postgresql+psycopg://localhost/test",
+        jwt_secret="test-secret-" * 4,
+        frontend_url="https://example.com/Tomohu/",
+        mail_mode="smtp",
+        smtp_host="smtp.example.com",
+        smtp_username="test",
+        smtp_password="private-smtp-secret",
+    )
+    settings = Settings(**values)
+    assert "private-smtp-secret" not in repr(settings)
+    for override in (
+        {"mail_mode": "outbox"},
+        {"smtp_password": ""},
+        {"frontend_url": "http://example.com/"},
+        {"frontend_url": "https://user:password@example.com/"},
+        {"frontend_url": "https://example.com/#token"},
+        {"mail_from": "sender@example.com\nBcc: attacker@example.com"},
+    ):
+        with pytest.raises(ValueError):
+            Settings(**{**values, **override})

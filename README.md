@@ -1,4 +1,4 @@
-# Tomohu · v0.20.0
+# Tomohu · v0.21.0
 
 Organizador pessoal em React e TypeScript. Primeira versão funcional, com armazenamento local e visual baseado no protótipo azul-escuro do Figma.
 
@@ -102,7 +102,7 @@ As regras obrigatórias para alterações ficam em [AGENTS.md](AGENTS.md).
 
 - Guest data and pending account caches stay in this browser/origin. Account data reaches the configured server only after an explicit copy or synchronization. Clearing site data can remove pending work. Exporte uma cópia JSON antes de alterações importantes; Ajustes também permite importar um backup válido com confirmação.
 - Use uma aba por vez: ainda não há sincronização de alterações entre abas ou dispositivos.
-- Account login and manual synchronization require a separately running API configured with `VITE_API_BASE_URL`. Password recovery, email verification, sharing and automatic background synchronization are not part of 0.20.
+- Account login and manual synchronization require a separately running API configured with `VITE_API_BASE_URL`. Account recovery, email verification and session revocation are available in 0.21. Sharing and automatic background synchronization remain deferred.
 - O aplicativo ainda não é uma PWA: não garante abrir sem internet depois que o servidor for encerrado. Persistência local não equivale a um aplicativo offline completo.
 - Lembretes têm data local, duração de um ou vários dias, opção de dia todo, evento contínuo ou horários diários programados e contador automático até o próximo evento. Notificações do sistema ainda ficam para outra etapa.
 - Seções e conteúdos podem ser excluídos com confirmação; ainda não há lixeira, movimentação entre seções nem reordenação manual de cartões. Itens de listas podem ser excluídos e reordenados.
@@ -111,6 +111,6 @@ As regras obrigatórias para alterações ficam em [AGENTS.md](AGENTS.md).
 
 ## Versões e Git
 
-`0.20.0` adds account workspaces and explicit synchronization. GitHub Pages publishes only the frontend. Set the repository variable `TOMOHU_API_BASE_URL` to a deployed HTTPS API origin to enable accounts there; leaving it empty preserves local mode. See the [0.20 release and Windows validation guide](docs/versions/0.20.0.md) and [ADR 0003](docs/architecture/0003-account-workspaces-and-explicit-sync.md).
+`0.21.0` adds email verification, password recovery/change and revocable sessions. Account workspaces and explicit synchronization from 0.20 remain unchanged. GitHub Pages publishes only the frontend. Set the repository variable `TOMOHU_API_BASE_URL` to a deployed HTTPS API origin to enable accounts there; leaving it empty preserves local mode. See the [0.21 release and Windows validation guide](docs/versions/0.21.0.md) and [ADR 0003](docs/architecture/0003-account-workspaces-and-explicit-sync.md).
 
 Commits futuros: `feat: add ...`, `fix: correct ...`, `refactor: extract ...`. Uma versão pode reunir vários commits.

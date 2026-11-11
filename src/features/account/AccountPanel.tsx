@@ -1,3 +1,4 @@
+import { AccountSecurity } from './AccountSecurity'
 import { CredentialsForm } from './CredentialsForm'
 import { useState } from 'react'
 import type { AccountController } from './useAccount'
@@ -41,6 +42,7 @@ export function AccountPanel({
           <p>
             Conectado como <strong>{account.session.user.email}</strong>.
           </p>
+          <AccountSecurity account={account} />
           <p className="muted">
             Abra um caderno ou crie outro. O caderno local não é enviado
             automaticamente.
@@ -114,8 +116,10 @@ export function AccountPanel({
           canSwitch={canSwitch}
           expired={Boolean(account.session)}
           onAuthenticate={account.authenticate}
+          onRequestReset={account.requestReset}
         />
       )}
+      {account.notice && <p role="status">{account.notice}</p>}
       {account.error && (
         <p role="alert" className="form-warning">
           {account.error}
