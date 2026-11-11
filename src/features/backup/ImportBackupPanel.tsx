@@ -3,11 +3,13 @@ import { Icon } from '../../components/Icon'
 export function ImportBackupPanel({
   fileName,
   blocked = false,
+  error = '',
   onExport,
   onBack,
   onReplace,
 }: {
   blocked?: boolean
+  error?: string
   fileName: string
   onExport: () => void
   onBack: () => void
@@ -30,6 +32,11 @@ export function ImportBackupPanel({
       {blocked && (
         <p role="status">
           Aguarde a operação da conta terminar antes de importar.
+        </p>
+      )}
+      {error && (
+        <p className="form-warning" role="alert">
+          {error}
         </p>
       )}
       <div className="import-backup-actions">

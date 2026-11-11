@@ -547,3 +547,59 @@ test('remote recovery preserves a different tab draft even after that tab closes
     }),
   ).toHaveCount(0)
 })
+
+test('a preserved cache export can be restored with the normal backup importer', async ({
+  page,
+}) => {
+  await mockApi(page)
+  await settings(page)
+  await login(page)
+  await openBook(page)
+  const key = 'tomohu.account.v1.alice.book'
+  const other = structuredClone(fixture)
+  for (const c of other.contents)
+    if (c.kind === 'note') c.text = 'Recoverable other-tab draft'
+  await page.evaluate(
+    ({ key, snapshot }) => {
+      const cache = JSON.parse(localStorage.getItem(key) ?? 'null')
+      cache.snapshot = snapshot
+      localStorage.setItem(key, JSON.stringify(cache))
+      window.dispatchEvent(
+        new StorageEvent('storage', { key, newValue: JSON.stringify(cache) }),
+      )
+    },
+    { key, snapshot: other },
+  )
+  await settings(page)
+  const downloading = page.waitForEvent('download')
+  await page
+    .getByRole('button', { name: 'Exportar cache preservado', exact: true })
+    .click()
+  const stream = await (await downloading).createReadStream()
+  if (!stream) throw new Error('Export unavailable')
+  let raw = ''
+  for await (const chunk of stream) raw += chunk.toString()
+  expect(raw).toContain('Recoverable other-tab draft')
+  await page.getByLabel(/Já exportei o que preciso/).check()
+  await page
+    .getByRole('button', { name: 'Carregar versão da conta', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', {
+      name: 'Exportar cache preservado',
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'tomohu-preserved-account-cache.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(raw),
+  })
+  await page
+    .getByRole('button', { name: 'Substituir dados', exact: true })
+    .click()
+  await page.goto('/#content/note')
+  await expect(page.getByLabel('Sua nota')).toHaveValue(
+    'Recoverable other-tab draft',
+  )
+})

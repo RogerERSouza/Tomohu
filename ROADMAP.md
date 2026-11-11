@@ -22,6 +22,8 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 
 - [x] `0.20.0` review fixes — Guard destructive recovery against local edits and external cache changes; block overlapping imports; normalize nullable API fields and outbound legacy counter timestamps without rewriting guest backups.
 
+- [x] `0.20.0` recovery cycle — Protect guest drafts across tabs, restore preserved caches through validated imports, normalize API timestamp variants and show failed replacement errors in the recovery dialog.
+
 **0.18 validation:** local release checks completed, including 56 tests on native PostgreSQL 17 and manual API ownership/persistence checks. See `docs/versions/0.18.0.md` for the evidence and remaining production limits. Remote CI and PR review must still pass before integration.
 
 Each substantial architecture change receives its own minor release and reviewable baseline. Never combine frontend restructuring and synchronization in one release.

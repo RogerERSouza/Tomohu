@@ -24,6 +24,7 @@ type Props = {
   exportNotebook: () => void
   onImport: () => void
   importError: string
+  replacementError: string
   accountPanel: ReactNode
 }
 export function EditorDialog({
@@ -38,6 +39,7 @@ export function EditorDialog({
   exportNotebook,
   onImport,
   importError,
+  replacementError,
   accountPanel,
 }: Props) {
   const close = () => setEditor(null)
@@ -76,6 +78,7 @@ export function EditorDialog({
         <ImportBackupPanel
           fileName={editor.fileName}
           blocked={importBlocked}
+          error={replacementError}
           onExport={exportNotebook}
           onBack={() => setEditor({ kind: 'settings' })}
           onReplace={() => {

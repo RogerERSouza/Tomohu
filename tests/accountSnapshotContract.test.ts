@@ -72,3 +72,10 @@ test('out-of-range counter dates fail locally with an actionable error', () => {
     local.contents[0].entries[0].createdAt = '+010000-01-01T00:00:00Z'
   assert.throws(() => prepareAccountSnapshot(local), /contador.*0001 a 9999/)
 })
+
+for (const fixture of fixtures.timestampVariants)
+  test('server timestamp variants canonicalize to frontend-readable snapshots', () => {
+    const snapshot = structuredClone(fixtures.legacyCounter.canonical)
+    snapshot.contents[0].entries[0].createdAt = fixture.canonical
+    assert.ok(isNotebook(snapshot))
+  })

@@ -1,4 +1,6 @@
 import { downloadJson } from '../../lib/browserFiles'
+import { parseNotebookBackup } from '../../lib/notebook'
+import { downloadNotebook } from '../backup/backupFiles'
 import { useState } from 'react'
 import type { SyncController } from './useAccountNotebook'
 
@@ -14,7 +16,12 @@ export function SyncPanel({
   const [confirmed, setConfirmed] = useState(false)
   function exportCache() {
     const raw = sync.rawCache()
-    downloadJson(raw, 'tomohu-preserved-account-cache.json')
+    if (!raw) return
+    try {
+      downloadNotebook(parseNotebookBackup(raw))
+    } catch {
+      downloadJson(raw, 'tomohu-damaged-account-cache.json')
+    }
   }
   return (
     <section aria-label="Sincronização" className="account-panel">

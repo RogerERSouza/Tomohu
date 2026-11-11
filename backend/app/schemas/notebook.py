@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.schemas.timestamps import browser_timestamp
 
 
 class StrictModel(BaseModel):
@@ -35,6 +37,11 @@ class CounterEntrySnapshot(StrictModel):
     delta: float
     createdAt: str = Field(min_length=1, max_length=40)
     note: str = Field(max_length=500)
+
+    @field_validator("createdAt")
+    @classmethod
+    def normalize_timestamp(cls, value: str) -> str:
+        return browser_timestamp(value)
 
 
 class ContentSnapshot(StrictModel):
@@ -72,6 +79,11 @@ class ReminderSnapshot(StrictModel):
     countdownFormat: (
         Literal["automatic", "days-hours", "hours-minutes", "minutes-seconds"] | None
     ) = None
+
+    @field_validator("date")
+    @classmethod
+    def normalize_date(cls, value: str) -> str:
+        return browser_timestamp(value)
 
     @model_validator(mode="before")
     @classmethod

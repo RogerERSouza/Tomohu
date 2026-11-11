@@ -146,6 +146,7 @@ export function NotebookView({
           exportNotebook={exportNotebook}
           onImport={() => importInputRef.current?.click()}
           importError={importError}
+          replacementError={storageError}
           accountPanel={accountPanel}
         />
       )}

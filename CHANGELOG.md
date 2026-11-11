@@ -4,6 +4,11 @@
 
 ### Fixed after branch review
 
+- Pause guest autosave on external writes/clears; preserve open and displaced recovery copies before confirmed replacement.
+- Export valid account recovery caches as restorable notebook backups; import older validated cache envelopes through the same shared decoder used by account storage.
+- Normalize Python-only API dates for new and previously stored snapshots, preserving supported timezone semantics; reject normalization overflow as a validation error.
+- Keep external-change warnings from being cleared by stale status updates and show failed-import errors inside the confirmation dialog. See `docs/versions/0.20.0-recovery-cycle.md`.
+
 - Block overlapping imports and ignore destructive remote responses after local edits or another tab changes the account cache.
 - Preserve external drafts until a new explicit recovery, including delayed storage events; retain browser recovery/export controls.
 - Omit nullable optional reminder fields and include root section parents in API responses, including previously stored snapshots.

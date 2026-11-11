@@ -1,5 +1,6 @@
 import type { Content, CounterEntry, Notebook, Section } from '../types'
 import { isNotebook } from './notebookValidation.ts'
+import { readWorkspaceCache } from './workspaceCache.ts'
 
 export { isNotebook } from './notebookValidation.ts'
 
@@ -93,6 +94,5 @@ export function createContent(
 
 export function parseNotebookBackup(text: string): Notebook {
   const parsed: unknown = JSON.parse(text)
-  if (!isNotebook(parsed)) throw new Error('Invalid notebook backup')
-  return parsed
+  return isNotebook(parsed) ? parsed : readWorkspaceCache(parsed).snapshot
 }
