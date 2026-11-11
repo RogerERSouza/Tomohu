@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 0.20.0 — 2026-11-09
+
+### Added
+
+- Optional account registration/login, owner-scoped notebook discovery and explicit guest-copy transfer without changing the guest notebook.
+- Isolated account caches, manual revision-checked synchronization, pending-edit recovery and conflict/export/reload controls.
+- Memory-only short-lived sessions, API contract/size validation, network retry and cross-tab preservation warnings.
+- Mocked account browser regressions and real API/browser integration, with PostgreSQL integration configured in CI.
+
+### Changed
+
+- Separate workspace composition from notebook rendering; keep form state, session, API and persistence responsibilities in their feature modules.
+- Align backend snapshot value validation with frontend integrity rules; preserve current data on rejected replacements.
+- Support a public API origin through `VITE_API_BASE_URL` or the Pages repository variable `TOMOHU_API_BASE_URL`. Unconfigured deployments stay local.
+
 ## 0.19.0 — 2026-11-09
 
 ### Fixed after branch review

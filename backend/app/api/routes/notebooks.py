@@ -4,12 +4,14 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_session, require_user
+from app.models.notebook import NotebookRecord
 from app.models.user import User
 from app.schemas.notebook import (
     NotebookCreate,
     NotebookReplace,
     NotebookResponse,
     NotebookSnapshot,
+    NotebookSummary,
 )
 from app.services.notebook import NotebookService
 
@@ -22,6 +24,24 @@ def as_response(notebook_id: str, revision: int, snapshot: object) -> NotebookRe
         revision=revision,
         snapshot=NotebookSnapshot.model_validate(cast(dict[str, object], snapshot)),
     )
+
+
+def as_summary(notebook: NotebookRecord) -> NotebookSummary:
+    sections = notebook.snapshot.get("sections")
+    title = None
+    if isinstance(sections, list) and sections and isinstance(sections[0], dict):
+        candidate = sections[0].get("title")
+        if isinstance(candidate, str):
+            title = candidate
+    return NotebookSummary(id=notebook.id, revision=notebook.revision, title=title)
+
+
+@router.get("", response_model=list[NotebookSummary])
+def list_notebooks(
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> list[NotebookSummary]:
+    return [as_summary(item) for item in NotebookService().list_owned(session, user.id)]
 
 
 @router.post(

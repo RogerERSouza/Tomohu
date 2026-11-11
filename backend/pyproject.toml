@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tomohu-api"
-version = "0.18.0"
+version = "0.20.0"
 description = "Backend API for Tomohu"
 requires-python = ">=3.12"
 dependencies = [

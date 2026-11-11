@@ -2094,3 +2094,42 @@ legend {
     padding-bottom: 20px;
   }
 }
+
+.account-panel {
+  overflow-wrap: anywhere;
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line, #687387);
+  padding-top: 16px;
+  min-width: 0;
+}
+.account-panel form {
+  display: grid;
+  gap: 12px;
+}
+
+.account-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.account-confirm input {
+  accent-color: #a7bcec;
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.account-controls {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.workspace-status {
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}

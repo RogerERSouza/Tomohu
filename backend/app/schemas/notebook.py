@@ -83,7 +83,11 @@ class NotebookReplace(StrictModel):
     snapshot: NotebookSnapshot
 
 
-class NotebookResponse(StrictModel):
+class NotebookSummary(StrictModel):
     id: str
     revision: int
+    title: str | None = None
+
+
+class NotebookResponse(NotebookSummary):
     snapshot: NotebookSnapshot

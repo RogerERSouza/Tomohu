@@ -210,3 +210,123 @@ def test_concurrent_writers_cannot_silently_overwrite(client, notebook_payload):
         ]
         == 2
     )
+
+
+def test_discovery_is_owner_scoped_and_requires_authentication(
+    client, notebook_payload
+):
+    assert client.get("/api/v1/notebooks").status_code == 401
+    owner = register_and_login(client)
+    other = register_and_login(client, "other@example.com")
+    assert client.get("/api/v1/notebooks", headers=owner).json() == []
+    created = client.post(
+        "/api/v1/notebooks", json=notebook_payload, headers=owner
+    ).json()
+    response = client.get("/api/v1/notebooks", headers=owner)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == [{"id": created["id"], "revision": 1, "title": "Studies"}]
+    assert client.get("/api/v1/notebooks", headers=other).json() == []
+
+
+@pytest.mark.parametrize("kind", ["date", "interval", "counter", "items"])
+def test_sync_rejects_invalid_values_without_replacing_snapshot(
+    client, notebook_payload, kind
+):
+    from copy import deepcopy
+
+    headers = register_and_login(client)
+    original = client.post(
+        "/api/v1/notebooks", json=notebook_payload, headers=headers
+    ).json()
+    invalid = deepcopy(notebook_payload)
+    if kind in {"date", "interval"}:
+        invalid["snapshot"]["reminders"] = [
+            {
+                "id": "r",
+                "title": "Event",
+                "date": "2030-02-30" if kind == "date" else "2030-05-10",
+                "schedule": "time-range",
+                "startTime": "09:00",
+                "endTime": "08:00",
+            }
+        ]
+    elif kind == "counter":
+        invalid["snapshot"]["contents"] = [
+            {
+                "id": "c",
+                "sectionId": "section-1",
+                "title": "Count",
+                "kind": "counter",
+                "entries": [
+                    {
+                        "id": "e",
+                        "delta": -2,
+                        "createdAt": "2030-05-10T09:00:00Z",
+                        "note": "",
+                    }
+                ],
+            }
+        ]
+    else:
+        invalid["snapshot"]["contents"] = [
+            {
+                "id": "c",
+                "sectionId": "section-1",
+                "title": "List",
+                "kind": "checklist",
+                "items": [
+                    {"id": "e", "text": "a", "completed": False},
+                    {"id": "e", "text": "b", "completed": False},
+                ],
+            }
+        ]
+    path = f"/api/v1/notebooks/{original['id']}"
+    assert (
+        client.put(path, json={"revision": 1, **invalid}, headers=headers).status_code
+        == 422
+    )
+    assert client.get(path, headers=headers).json() == original
+
+
+def test_sync_accepts_correction_history_and_valid_legacy_and_overnight_events(
+    client, notebook_payload
+):
+    headers = register_and_login(client)
+    notebook_payload["snapshot"]["contents"] = [
+        {
+            "id": "counter",
+            "sectionId": "section-1",
+            "title": "Counter",
+            "kind": "counter",
+            "entries": [
+                {
+                    "id": "increase",
+                    "delta": 2,
+                    "createdAt": "2030-05-10T09:00:00Z",
+                    "note": "",
+                },
+                {
+                    "id": "correction",
+                    "delta": -1,
+                    "createdAt": "2030-05-10T09:01",
+                    "note": "Correction",
+                },
+            ],
+        }
+    ]
+    notebook_payload["snapshot"]["reminders"] = [
+        {"id": "legacy", "title": "Legacy", "date": "2030-05-10T09:00:00-03:00"},
+        {
+            "id": "overnight",
+            "title": "Overnight",
+            "date": "2030-05-10",
+            "endDate": "2030-05-11",
+            "schedule": "time-range",
+            "startTime": "23:30",
+            "endTime": "00:30",
+        },
+    ]
+    created = client.post("/api/v1/notebooks", json=notebook_payload, headers=headers)
+    assert created.status_code == 201
+    assert created.json()["snapshot"] == notebook_payload["snapshot"]

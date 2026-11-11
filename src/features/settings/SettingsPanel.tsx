@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
 import { version as appVersion } from '../../../package.json'
 import type { HourFormat } from '../../lib/time'
@@ -11,6 +12,7 @@ export function SettingsPanel({
   onExport,
   onImport,
   importError,
+  accountPanel,
 }: {
   theme: Theme
   setTheme: (theme: Theme) => void
@@ -19,6 +21,7 @@ export function SettingsPanel({
   onExport: () => void
   onImport: () => void
   importError: string
+  accountPanel?: ReactNode
 }) {
   return (
     <div className="settings-panel">
@@ -92,7 +95,11 @@ export function SettingsPanel({
           {importError}
         </p>
       )}
-      <p className="muted">Os dados ficam neste navegador.</p>
+      {accountPanel}
+      <p className="muted">
+        Exporte cópias de segurança. O envio para a conta exige sincronização
+        explícita.
+      </p>
       <span className="muted">Tomohu · v{appVersion}</span>
     </div>
   )

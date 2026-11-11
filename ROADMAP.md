@@ -18,7 +18,7 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 - [x] `0.19.0` — Refactor the frontend by feature, with component and browser regression coverage established before extraction. Preserve current behavior and local data.
 - [x] `0.19.0` review fixes — Resume autosave after confirmed recovery, normalize reminder times, reject invalid counter timestamps, and keep mobile tag controls visible.
 - [x] `0.19.0` validation fixes — Reject inconsistent backups without replacing current data; validate reminder intervals and counter totals, with defensive calendar rendering.
-- [ ] `0.20.0` (planned) — Integrate authenticated accounts and safe synchronization after the frontend refactor; define migration, backup, and conflict-resolution behavior first.
+- [x] `0.20.0` (implementation validated; release checks pending) — Account registration/login, owner-scoped notebook discovery, isolated browser caches and explicit revision-checked synchronization. Preserve guest data; never upload or overwrite it implicitly.
 
 **0.18 validation:** local release checks completed, including 56 tests on native PostgreSQL 17 and manual API ownership/persistence checks. See `docs/versions/0.18.0.md` for the evidence and remaining production limits. Remote CI and PR review must still pass before integration.
 
@@ -109,10 +109,14 @@ Each substantial architecture change receives its own minor release and reviewab
 ### Contas, privacidade e segurança
 
 - [x] Backend account registration, login, and owner-scoped notebook access. — `0.18.0`
-- [ ] Frontend login and account lifecycle interface; planned after `0.19.0`.
+- [x] Frontend registration/login/logout and owner-scoped notebook access. — `0.20.0`
+- [ ] Account recovery and verified email lifecycle.
 - [ ] Onboarding após criar a conta: escolher idioma, tema claro/escuro padrão, formato de hora (12/24h) e outras preferências de qualidade de vida, todas alteráveis depois em Configurações.
 - [x] Backend notebook ownership and access isolation. — `0.18.0`
-- [ ] Account-based browser data migration, synchronization, and backups.
+- [x] Explicit guest-to-account copies, isolated caches, manual revision-checked synchronization and backup export. — `0.20.0`
+- [x] Correct live-test cleanup: close the owned Windows API process tree and avoid temporary log handles. Native Windows rerun pending.
+- [ ] Automatic background synchronization after a separate conflict/retry design.
+- [ ] Production HTTPS API hosting and operational readiness review.
 - [ ] Sessões privadas protegidas por senha.
 - [ ] Criptografia real para conteúdo privado e proteção adequada de dados sensíveis.
 - [ ] Notificações e alarmes de eventos, configuráveis como em calendários.

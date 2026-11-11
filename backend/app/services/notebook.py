@@ -6,6 +6,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from app.models.notebook import NotebookRecord
 from app.repositories.notebook import NotebookRepository
 from app.schemas.notebook import NotebookSnapshot
+from app.services.snapshot_validation import validate_snapshot_values
 
 
 class NotebookNotFound(Exception):
@@ -42,6 +43,9 @@ class NotebookService:
             raise NotebookNotFound("Notebook not found")
         return notebook
 
+    def list_owned(self, session: Session, owner_id: str) -> list[NotebookRecord]:
+        return self.repository.list_owned(session, owner_id)
+
     def replace(
         self,
         session: Session,
@@ -77,6 +81,7 @@ class NotebookService:
 
     @staticmethod
     def _validate_snapshot(snapshot: NotebookSnapshot) -> None:
+        validate_snapshot_values(snapshot)
         section_ids = [section.id for section in snapshot.sections]
         if len(section_ids) != len(set(section_ids)):
             raise ValueError("Section IDs must be unique")

@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction, ReactNode } from 'react'
 import { Modal } from '../components/Modal'
 import { SectionForm } from '../features/sections/SectionForm'
 import { ContentForm } from '../features/contents/ContentForm'
@@ -23,6 +23,7 @@ type Props = {
   exportNotebook: () => void
   onImport: () => void
   importError: string
+  accountPanel: ReactNode
 }
 export function EditorDialog({
   editor,
@@ -35,6 +36,7 @@ export function EditorDialog({
   exportNotebook,
   onImport,
   importError,
+  accountPanel,
 }: Props) {
   const close = () => setEditor(null)
   return (
@@ -64,6 +66,7 @@ export function EditorDialog({
           onExport={exportNotebook}
           onImport={onImport}
           importError={importError}
+          accountPanel={accountPanel}
         />
       )}
       {editor.kind === 'import-backup' && (
