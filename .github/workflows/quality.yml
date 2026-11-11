@@ -68,3 +68,25 @@ jobs:
         env:
           TOMOHU_TEST_DATABASE_URL: postgresql+psycopg://tomohu:test-only-password@localhost:5432/tomohu_test
         run: python -m pytest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        working-directory: .
+      - run: npx playwright install --with-deps chromium
+        working-directory: .
+      - name: Real account browser integration on PostgreSQL
+        working-directory: .
+        env:
+          TOMOHU_E2E_DATABASE_URL: postgresql+psycopg://tomohu:test-only-password@localhost:5432/tomohu_test
+        run: python scripts/run_live_e2e.py
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: account-integration-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

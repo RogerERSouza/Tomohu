@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.schemas.timestamps import browser_timestamp
 
 
 class StrictModel(BaseModel):
@@ -16,6 +18,13 @@ class SectionSnapshot(StrictModel):
     favorite: bool = False
     tags: list[str] = Field(default_factory=list, max_length=20)
 
+    @model_validator(mode="before")
+    @classmethod
+    def include_root_parent(cls, value: object) -> object:
+        if isinstance(value, dict):
+            return {"parentId": None, **value}
+        return value
+
 
 class ListItemSnapshot(StrictModel):
     id: str = Field(min_length=1, max_length=36)
@@ -28,6 +37,11 @@ class CounterEntrySnapshot(StrictModel):
     delta: float
     createdAt: str = Field(min_length=1, max_length=40)
     note: str = Field(max_length=500)
+
+    @field_validator("createdAt")
+    @classmethod
+    def normalize_timestamp(cls, value: str) -> str:
+        return browser_timestamp(value)
 
 
 class ContentSnapshot(StrictModel):
@@ -66,6 +80,31 @@ class ReminderSnapshot(StrictModel):
         Literal["automatic", "days-hours", "hours-minutes", "minutes-seconds"] | None
     ) = None
 
+    @field_validator("date")
+    @classmethod
+    def normalize_date(cls, value: str) -> str:
+        return browser_timestamp(value)
+
+    @model_validator(mode="before")
+    @classmethod
+    def omit_optional_nulls(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        optional = {
+            "schedule",
+            "startTime",
+            "endDate",
+            "endTime",
+            "repeatTimes",
+            "duration",
+            "countdownFormat",
+        }
+        return {
+            key: item
+            for key, item in value.items()
+            if item is not None or key not in optional
+        }
+
 
 class NotebookSnapshot(StrictModel):
     schemaVersion: Literal[1]
@@ -83,7 +122,11 @@ class NotebookReplace(StrictModel):
     snapshot: NotebookSnapshot
 
 
-class NotebookResponse(StrictModel):
+class NotebookSummary(StrictModel):
     id: str
     revision: int
+    title: str | None = None
+
+
+class NotebookResponse(NotebookSummary):
     snapshot: NotebookSnapshot

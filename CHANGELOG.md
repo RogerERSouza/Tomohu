@@ -1,5 +1,33 @@
 # Histórico de versões
 
+## 0.20.0 — 2026-11-09
+
+### Fixed after branch review
+
+- Pause guest autosave on external writes/clears; preserve open and displaced recovery copies before confirmed replacement.
+- Export valid account recovery caches as restorable notebook backups; import older validated cache envelopes through the same shared decoder used by account storage.
+- Normalize Python-only API dates for new and previously stored snapshots, preserving supported timezone semantics; reject normalization overflow as a validation error.
+- Keep external-change warnings from being cleared by stale status updates and show failed-import errors inside the confirmation dialog. See `docs/versions/0.20.0-recovery-cycle.md`.
+
+- Block overlapping imports and ignore destructive remote responses after local edits or another tab changes the account cache.
+- Preserve external drafts until a new explicit recovery, including delayed storage events; retain browser recovery/export controls.
+- Omit nullable optional reminder fields and include root section parents in API responses, including previously stored snapshots.
+- Normalize legacy counter timestamps only in outbound account copies; compare equivalent timestamps and object key orders without false pending-sync status.
+- Add shared API/frontend contract fixtures, controller regressions and real two-tab browser coverage. See `docs/versions/0.20.0-review-fixes.md`.
+
+### Added
+
+- Optional account registration/login, owner-scoped notebook discovery and explicit guest-copy transfer without changing the guest notebook.
+- Isolated account caches, manual revision-checked synchronization, pending-edit recovery and conflict/export/reload controls.
+- Memory-only short-lived sessions, API contract/size validation, network retry and cross-tab preservation warnings.
+- Mocked account browser regressions and real API/browser integration, with PostgreSQL integration configured in CI.
+
+### Changed
+
+- Separate workspace composition from notebook rendering; keep form state, session, API and persistence responsibilities in their feature modules.
+- Align backend snapshot value validation with frontend integrity rules; preserve current data on rejected replacements.
+- Support a public API origin through `VITE_API_BASE_URL` or the Pages repository variable `TOMOHU_API_BASE_URL`. Unconfigured deployments stay local.
+
 ## 0.19.0 — 2026-11-09
 
 ### Fixed after branch review

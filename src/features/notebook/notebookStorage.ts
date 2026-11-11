@@ -6,19 +6,27 @@ export function loadNotebook(): {
   notebook: Notebook
   error: string
   blocked: boolean
+  raw: string | null
 } {
+  let raw: string | null = null
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored)
-      return { notebook: createInitialNotebook(), error: '', blocked: false }
-    const parsed = parseNotebookBackup(stored)
-    return { notebook: parsed, error: '', blocked: false }
+    raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw)
+      return {
+        notebook: createInitialNotebook(),
+        error: '',
+        blocked: false,
+        raw,
+      }
+    const parsed = parseNotebookBackup(raw)
+    return { notebook: parsed, error: '', blocked: false, raw }
   } catch {
     return {
       notebook: createInitialNotebook(),
       error:
         'Não foi possível carregar os dados deste navegador. O salvamento foi pausado para preservar o que já existia. Exporte suas alterações antes de fechar.',
       blocked: true,
+      raw,
     }
   }
 }

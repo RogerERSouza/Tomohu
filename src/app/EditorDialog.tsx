@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction, ReactNode } from 'react'
 import { Modal } from '../components/Modal'
 import { SectionForm } from '../features/sections/SectionForm'
 import { ContentForm } from '../features/contents/ContentForm'
@@ -13,6 +13,7 @@ import type { Editor } from './editor'
 import { navigate } from './useNotebookRoute'
 
 type Props = {
+  importBlocked: boolean
   editor: NonNullable<Editor>
   setEditor: Dispatch<SetStateAction<Editor>>
   currentSection: Section | undefined
@@ -23,9 +24,12 @@ type Props = {
   exportNotebook: () => void
   onImport: () => void
   importError: string
+  replacementError: string
+  accountPanel: ReactNode
 }
 export function EditorDialog({
   editor,
+  importBlocked,
   setEditor,
   currentSection,
   preferences,
@@ -35,6 +39,8 @@ export function EditorDialog({
   exportNotebook,
   onImport,
   importError,
+  replacementError,
+  accountPanel,
 }: Props) {
   const close = () => setEditor(null)
   return (
@@ -61,14 +67,18 @@ export function EditorDialog({
       {editor.kind === 'settings' && (
         <SettingsPanel
           {...preferences}
+          importBlocked={importBlocked}
           onExport={exportNotebook}
           onImport={onImport}
           importError={importError}
+          accountPanel={accountPanel}
         />
       )}
       {editor.kind === 'import-backup' && (
         <ImportBackupPanel
           fileName={editor.fileName}
+          blocked={importBlocked}
+          error={replacementError}
           onExport={exportNotebook}
           onBack={() => setEditor({ kind: 'settings' })}
           onReplace={() => {

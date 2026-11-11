@@ -1,6 +1,6 @@
-# Tomohu API · 0.18.0
+# Tomohu API · 0.20.0
 
-FastAPI, SQLAlchemy, PostgreSQL and Alembic. The browser still uses localStorage; this release adds backend authentication without connecting the frontend to accounts.
+FastAPI, SQLAlchemy, PostgreSQL and Alembic. The frontend now supports optional authenticated workspaces and explicit synchronization, while guest data and pending account edits remain safely separated in browser storage.
 
 ## Run locally (Windows PowerShell)
 
@@ -31,7 +31,7 @@ The application never creates tables on startup. Apply migrations before using `
 | GET    | `/api/v1/notebooks/{id}` | Bearer token; only the owner can read                      |
 | PUT    | `/api/v1/notebooks/{id}` | Bearer token, revision and snapshot; 409 on stale revision |
 
-Passwords contain 15–128 characters and are stored only as salted Argon2id hashes. Email identifiers are case-insensitive. Unknown account and wrong password return the same 401. Duplicate registration returns 409. Tokens expire after 15 minutes by default; no refresh tokens or frontend persistence policy are introduced.
+Passwords contain 15–128 characters and are stored only as salted Argon2id hashes. Email identifiers are case-insensitive. Unknown account and wrong password return the same 401. Duplicate registration returns 409. Tokens expire after 15 minutes by default; no refresh tokens are issued, and the frontend keeps bearer tokens only in memory.
 
 Use Swagger `/docs`: register, login, copy access_token, click Authorize and paste the token value (the HTTP Bearer scheme adds the prefix). Then call `/auth/me` or create a synthetic notebook. Never send real personal data to an unreviewed public deployment.
 
@@ -85,4 +85,12 @@ The database name must end in `_test`. Each test creates its own random schema a
 - `app/core/`: configuration, hashing/token primitives, transactions and rate limits.
 - `migrations/`: reviewed Alembic schema history.
 
-See [ADR 0001](../docs/architecture/0001-authentication-and-notebook-ownership.md) for security trade-offs and deferred production requirements. Account recovery, verified email, logout/revocation and shared production rate limiting are not claimed complete in 0.18.
+See [ADR 0001](../docs/architecture/0001-authentication-and-notebook-ownership.md) for security trade-offs and deferred production requirements. Account recovery, verified email, logout/revocation and shared production rate limiting remain outside the 0.20 integration scope.
+
+## 0.20 account integration
+
+`GET /api/v1/notebooks` returns only the authenticated owner's notebook IDs, revisions and a display title derived from the first section, in stable creation order. It requires the same bearer authentication as notebook reads and writes and never lists quarantined anonymous records. No new database migration is needed.
+
+Snapshot create/replace now validate calendar values, reminder intervals, nested identifiers and finite/nonnegative counter totals in addition to hierarchy/ownership rules. Rejected replacements leave the existing revision unchanged. API size limits still apply; the frontend checks these before upload without truncating guest data.
+
+The frontend uses memory-only tokens and explicit synchronization. Configure development CORS for the frontend origin (default localhost/127.0.0.1 port 5173); integration tests use port 4173. A deployed frontend requires an independently deployed HTTPS API and explicit production CORS, PostgreSQL and a stable signing secret.

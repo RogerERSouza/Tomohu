@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
 import { version as appVersion } from '../../../package.json'
 import type { HourFormat } from '../../lib/time'
@@ -11,6 +12,8 @@ export function SettingsPanel({
   onExport,
   onImport,
   importError,
+  accountPanel,
+  importBlocked = false,
 }: {
   theme: Theme
   setTheme: (theme: Theme) => void
@@ -19,6 +22,8 @@ export function SettingsPanel({
   onExport: () => void
   onImport: () => void
   importError: string
+  importBlocked?: boolean
+  accountPanel?: ReactNode
 }) {
   return (
     <div className="settings-panel">
@@ -84,15 +89,28 @@ export function SettingsPanel({
         <Icon name="download" />
         Exportar cópia dos dados
       </button>
-      <button className="secondary-button" onClick={onImport}>
+      <button
+        className="secondary-button"
+        onClick={onImport}
+        disabled={importBlocked}
+      >
         Importar cópia dos dados
       </button>
+      {importBlocked && (
+        <p role="status">
+          Aguarde a operação da conta terminar antes de importar.
+        </p>
+      )}
       {importError && (
         <p className="form-warning" role="alert">
           {importError}
         </p>
       )}
-      <p className="muted">Os dados ficam neste navegador.</p>
+      {accountPanel}
+      <p className="muted">
+        Exporte cópias de segurança. O envio para a conta exige sincronização
+        explícita.
+      </p>
       <span className="muted">Tomohu · v{appVersion}</span>
     </div>
   )

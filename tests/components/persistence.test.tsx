@@ -170,3 +170,71 @@ test('a failed recovery keeps saving blocked until an explicit replacement succe
     result.current.notebook,
   )
 })
+
+for (const deliverEvent of [true, false])
+  test(`guest drafts survive external writes with storage event delivery=${deliverEvent}`, async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+    const { result, unmount } = renderHook(useNotebook, { wrapper: StrictMode })
+    const other = {
+      ...saved,
+      reminders: [
+        { id: 'other', title: 'Other tab draft', date: '2030-05-12' },
+      ],
+    }
+    const raw = JSON.stringify(other)
+    await act(async () => {
+      localStorage.setItem(STORAGE_KEY, raw)
+      if (deliverEvent)
+        window.dispatchEvent(
+          new window.StorageEvent('storage', {
+            key: STORAGE_KEY,
+            newValue: raw,
+          }),
+        )
+      result.current.setNotebook((current) => ({
+        ...current,
+        sections: current.sections.map((section) => ({
+          ...section,
+          favorite: true,
+        })),
+      }))
+    })
+    assert.equal(localStorage.getItem(STORAGE_KEY), raw)
+    assert.match(result.current.storageError, /Outra aba/)
+    assert.ok(
+      Object.keys(localStorage).some((key) =>
+        key.startsWith('tomohu.guest.recovery.'),
+      ),
+    )
+    await act(async () =>
+      assert.equal(result.current.replaceNotebook(saved), true),
+    )
+    assert.ok(
+      Object.keys(localStorage).some(
+        (key) =>
+          key.startsWith('tomohu.guest.recovery.') &&
+          localStorage.getItem(key) === raw,
+      ),
+    )
+    await act(async () => result.current.setNotebook(other))
+    assert.deepEqual(
+      JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null'),
+      other,
+    )
+    unmount()
+    const reloaded = renderHook(useNotebook)
+    assert.deepEqual(reloaded.result.current.notebook, other)
+  })
+
+test('a guest clear event pauses writes and keeps the open notebook exportable', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+  const { result } = renderHook(useNotebook)
+  await act(async () => {
+    localStorage.removeItem(STORAGE_KEY)
+    window.dispatchEvent(new window.StorageEvent('storage', { key: null }))
+    result.current.setNotebook({ ...saved, reminders: [] })
+  })
+  assert.equal(localStorage.getItem(STORAGE_KEY), null)
+  assert.match(result.current.storageError, /Outra aba/)
+  assert.deepEqual(result.current.notebook, { ...saved, reminders: [] })
+})

@@ -2,10 +2,14 @@ import { Icon } from '../../components/Icon'
 
 export function ImportBackupPanel({
   fileName,
+  blocked = false,
+  error = '',
   onExport,
   onBack,
   onReplace,
 }: {
+  blocked?: boolean
+  error?: string
   fileName: string
   onExport: () => void
   onBack: () => void
@@ -25,11 +29,26 @@ export function ImportBackupPanel({
         <Icon name="download" />
         Exportar cópia atual
       </button>
+      {blocked && (
+        <p role="status">
+          Aguarde a operação da conta terminar antes de importar.
+        </p>
+      )}
+      {error && (
+        <p className="form-warning" role="alert">
+          {error}
+        </p>
+      )}
       <div className="import-backup-actions">
         <button type="button" className="secondary-button" onClick={onBack}>
           Voltar
         </button>
-        <button type="button" className="primary-button" onClick={onReplace}>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={onReplace}
+          disabled={blocked}
+        >
           Substituir dados
         </button>
       </div>
