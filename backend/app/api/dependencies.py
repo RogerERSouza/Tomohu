@@ -20,7 +20,7 @@ def get_session(request: Request) -> Generator[Session, None, None]:
 def require_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> User:
     unauthorized = HTTPException(
         status_code=401,

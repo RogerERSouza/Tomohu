@@ -29,7 +29,7 @@ def create_session_factory(engine: Engine) -> sessionmaker[Session]:
 
 
 def session_scope(factory: sessionmaker[Session]) -> Generator[Session, None, None]:
-    """Yield one transaction boundary per HTTP request."""
+    """Commit before the HTTP response; all consumers use function scope."""
     with factory() as session:
         try:
             yield session

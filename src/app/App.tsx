@@ -16,6 +16,13 @@ function GuestWorkspace({ account }: { account: AccountController }) {
   return (
     <NotebookView
       controller={controller}
+      status={
+        !account.session && account.notice ? (
+          <p className="workspace-status" role="status">
+            {account.notice}
+          </p>
+        ) : undefined
+      }
       onExport={backup.exportNotebook}
       accountPanel={
         <AccountPanel

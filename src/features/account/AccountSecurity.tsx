@@ -11,9 +11,7 @@ export function AccountSecurity({ account }: { account: AccountController }) {
   const [current, setCurrent] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
-  const [verified, setVerified] = useState(
-    account.session?.user.emailVerified === true,
-  )
+  const verified = account.session?.user.emailVerified === true
   const [show, setShow] = useState(false)
   async function run(action: () => Promise<void>) {
     if (busy || account.busy) return
@@ -72,11 +70,11 @@ export function AccountSecurity({ account }: { account: AccountController }) {
           <button
             type="button"
             className="text-button"
-            onClick={() =>
-              void run(async () => {
-                setVerified((await api.me()).emailVerified === true)
-              })
-            }
+            onClick={() => {
+              setError('')
+              account.setNotice('')
+              void account.refreshUser()
+            }}
           >
             Atualizar confirmação
           </button>

@@ -13,6 +13,8 @@ stores a digest and a delivery record, never the link secret. A separate worker
 reconstructs the secret with HMAC and delivers queued mail. Links use a configured
 frontend URL and fragments; opening a link never consumes it. Confirmation uses
 POST. Reset requests return the same response for unknown and existing addresses.
+Confirmation recomputes the link secret with the current signing key before
+atomic consumption, so rotation also rejects links that were already delivered.
 
 Development writes email files to an ignored outbox. Production uses authenticated
 SMTP with TLS and an explicitly configured frontend URL. SMTP delivery is retried;
@@ -25,3 +27,9 @@ New passwords follow the requested minimum of five characters with uppercase,
 lowercase and a digit; existing passwords remain usable for login.
 
 References: [OWASP Forgot Password](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html) and [Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) Cheat Sheets.
+
+Local logout clears memory-held credentials after a bounded remote revocation
+attempt. If the API cannot confirm revocation, the guest workspace shows a warning
+and the remote session remains subject to its original expiry. Existing draft
+export guards still apply; logout retains guest and account caches. Verification
+status belongs to the account controller and survives Settings dialog remounts.

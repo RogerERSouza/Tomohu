@@ -31,6 +31,8 @@ Each substantial architecture change receives its own minor release and reviewab
 - [x] `0.21.0` — Account email verification, password recovery/change and revocable sessions; preserve notebooks and guest storage.
 - [x] `0.21.0` account dialog follow-up — Clear reset confirmation, consistent field spacing and protection against accidental dismissal.
 
+- [x] `0.21.0` account review fixes — Invalidate delivered links after signing-key rotation, allow local logout during API failure and retain verified email status across dialogs.
+
 ## Earlier deliveries
 
 ### `0.3.0` · Lembretes e eventos
@@ -150,3 +152,5 @@ Toda função nova deve ser analisada pelo ponto de vista de quem está usando o
 - Testar manualmente os fluxos afetados no navegador, inclusive criar, editar, salvar, recarregar e excluir quando aplicável.
 - Fazer commits pequenos e descritivos; uma atualização pode conter vários commits saudáveis.
 - Se uma ideia exigir backend, autenticação ou segurança, planejar primeiro em vez de improvisar no front-end.
+
+- [x] `0.21.0` transaction boundary fix — Commit API transactions before sending responses; cover session visibility at the ASGI response boundary.

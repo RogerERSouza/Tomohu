@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
+from hmac import compare_digest
 from hmac import new as hmac_new
 from uuid import UUID, uuid4
 
@@ -93,14 +94,22 @@ class AccountService:
         session.flush()
 
     def confirm(
-        self, session: Session, raw: str, purpose: str, password: str | None = None
+        self,
+        session: Session,
+        raw: str,
+        purpose: str,
+        settings: Settings,
+        password: str | None = None,
     ) -> None:
         try:
             token_id = str(UUID(raw.split(".")[0]))
+            provided = raw.encode()
         except (ValueError, AttributeError):
             raise InvalidAccountAction() from None
         record = session.get(AccountToken, token_id)
-        if record is None:
+        if record is None or not compare_digest(
+            provided, link_token(record, settings).encode()
+        ):
             raise InvalidAccountAction()
         user = self.repository.lock_user(session, record.user_id)
         now = datetime.now(UTC)
@@ -110,7 +119,7 @@ class AccountService:
             or not self.repository.consume(
                 session,
                 token_id,
-                sha256(raw.encode()).hexdigest(),
+                sha256(provided).hexdigest(),
                 purpose,
                 user.credential_version,
                 now,

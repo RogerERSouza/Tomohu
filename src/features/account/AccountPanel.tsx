@@ -119,7 +119,9 @@ export function AccountPanel({
           onRequestReset={account.requestReset}
         />
       )}
-      {account.notice && <p role="status">{account.notice}</p>}
+      {account.session && account.notice && (
+        <p role="status">{account.notice}</p>
+      )}
       {account.error && (
         <p role="alert" className="form-warning">
           {account.error}

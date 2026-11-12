@@ -35,7 +35,7 @@ def register(
     payload: Registration,
     request: Request,
     response: Response,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> User:
     response.headers["Cache-Control"] = "no-store"
     try:
@@ -57,7 +57,7 @@ def login(
     payload: Credentials,
     request: Request,
     response: Response,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> TokenResponse:
     response.headers["Cache-Control"] = "no-store"
     key = sha256(payload.email.encode()).hexdigest()

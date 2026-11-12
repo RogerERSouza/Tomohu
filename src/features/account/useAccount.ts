@@ -119,6 +119,17 @@ export function useAccount() {
       setItems(await api.list())
     })
   }
+  async function refreshUser() {
+    if (!api || !session) return
+    await run(async () => {
+      const user = await api.me()
+      setSession((current) =>
+        current?.token === session.token && current.user.id === user.id
+          ? { ...current, user }
+          : current,
+      )
+    })
+  }
   async function open(id: string) {
     if (!api || !session) return
     await run(async () => {
@@ -150,25 +161,25 @@ export function useAccount() {
   }
   async function logout() {
     if (pending.current) return
-    if (api) {
-      let ended = false
-      await run(async () => {
+    await run(async () => {
+      let warning = ''
+      if (api) {
         try {
           await api.logout()
         } catch (error) {
-          if (!(error instanceof ApiError && error.status === 401)) throw error
+          if (!(error instanceof ApiError && error.status === 401))
+            warning =
+              'Você saiu neste navegador. Não foi possível confirmar o encerramento no servidor; a sessão remota pode continuar válida até expirar.'
         }
-        ended = true
-      })
-      if (!ended) return
-    }
-    generation.current++
-    setSession(null)
-    setWorkspace(null)
-    setItems([])
-    setError('')
-    setNotice('')
-    window.location.hash = ''
+      }
+      generation.current++
+      setSession(null)
+      setWorkspace(null)
+      setItems([])
+      setError('')
+      setNotice(warning)
+      window.location.hash = ''
+    })
   }
   return {
     enabled: Boolean(origin),
@@ -185,6 +196,7 @@ export function useAccount() {
     authenticate,
     open,
     refresh,
+    refreshUser,
     create,
     logout,
     expire: () =>

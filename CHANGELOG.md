@@ -1,6 +1,10 @@
 # Histórico de versões
 
+- Fix a transaction race: commit API changes before sending successful responses, so newly issued sessions are immediately usable.
+
 ## 0.21.0
+
+- Validate email links against the current signing key, keep local logout available when remote revocation fails and retain refreshed verification status in the account controller.
 
 - Clarify password reset success, space account-link forms and prevent accidental dialog dismissal from padding or backdrop clicks.
 

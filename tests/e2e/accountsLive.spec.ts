@@ -153,6 +153,14 @@ test('real email verification, password reset and session revocation preserve a 
   await expect(
     page.getByText('E-mail verificado.', { exact: true }),
   ).toBeVisible()
+  await page.getByRole('button', { name: 'Fechar', exact: true }).click()
+  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  await page
+    .getByRole('button', { name: 'Segurança da conta', exact: true })
+    .click()
+  await expect(
+    page.getByText('E-mail verificado.', { exact: true }),
+  ).toBeVisible()
   await page
     .getByRole('button', { name: 'Atualizar sessões', exact: true })
     .click()

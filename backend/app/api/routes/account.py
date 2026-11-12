@@ -33,7 +33,9 @@ def limit_email(request: Request, email: str) -> None:
 
 @router.post("/password/reset-request", status_code=202)
 def request_reset(
-    payload: EmailRequest, request: Request, session: Session = Depends(get_session)
+    payload: EmailRequest,
+    request: Request,
+    session: Session = Depends(get_session, scope="function"),
 ) -> dict:
     limit_email(request, payload.email)
     user = UserRepository().get_by_email(session, payload.email.lower())
@@ -46,7 +48,7 @@ def request_reset(
 def request_verification(
     request: Request,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> dict:
     limit_email(request, user.email)
     AccountService().issue(session, user, "verify", request.app.state.settings)
@@ -54,21 +56,35 @@ def request_verification(
 
 
 @router.post("/email/verify")
-def verify(payload: TokenRequest, session: Session = Depends(get_session)) -> dict:
+def verify(
+    payload: TokenRequest,
+    request: Request,
+    session: Session = Depends(get_session, scope="function"),
+) -> dict:
     try:
-        AccountService().confirm(session, payload.token.get_secret_value(), "verify")
+        AccountService().confirm(
+            session,
+            payload.token.get_secret_value(),
+            "verify",
+            request.app.state.settings,
+        )
     except InvalidAccountAction:
         raise HTTPException(400, "Link invalid, expired or already used.") from None
     return {"message": "Email verified."}
 
 
 @router.post("/password/reset")
-def reset(payload: ResetPassword, session: Session = Depends(get_session)) -> dict:
+def reset(
+    payload: ResetPassword,
+    request: Request,
+    session: Session = Depends(get_session, scope="function"),
+) -> dict:
     try:
         AccountService().confirm(
             session,
             payload.token.get_secret_value(),
             "reset",
+            request.app.state.settings,
             payload.password.get_secret_value(),
         )
     except InvalidAccountAction:
@@ -80,7 +96,7 @@ def reset(payload: ResetPassword, session: Session = Depends(get_session)) -> di
 def change(
     payload: ChangePassword,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> dict:
     try:
         AccountService().change_password(
@@ -98,7 +114,7 @@ def change(
 def sessions(
     request: Request,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> list[dict]:
     records = AccountService().repository.sessions(session, user.id, datetime.now(UTC))
     return [
@@ -116,7 +132,7 @@ def sessions(
 def revoke(
     session_id: str,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> dict:
     if not AccountService().revoke(session, user.id, session_id):
         raise HTTPException(404, "Session unavailable.")
@@ -127,14 +143,15 @@ def revoke(
 def logout(
     request: Request,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> dict:
     return revoke(request.state.session_id, user, session)
 
 
 @router.post("/sessions/revoke-all")
 def revoke_all(
-    user: User = Depends(require_user), session: Session = Depends(get_session)
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session, scope="function"),
 ) -> dict:
     AccountService().repository.revoke_all(session, user.id, datetime.now(UTC))
     return {"message": "All sessions ended."}

@@ -397,7 +397,9 @@ def test_postgres_concurrent_reset_consumes_link_once(client):
         start.wait(timeout=5)
         try:
             with client.app.state.session_factory.begin() as session:
-                AccountService().confirm(session, raw, "reset", "Next123")
+                AccountService().confirm(
+                    session, raw, "reset", client.app.state.settings, "Next123"
+                )
             return True
         except InvalidAccountAction:
             return False
@@ -405,3 +407,75 @@ def test_postgres_concurrent_reset_consumes_link_once(client):
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(lambda _: confirm(), range(2)))
     assert sorted(results) == [False, True]
+
+
+@pytest.mark.parametrize("purpose", ["verify", "reset"])
+@pytest.mark.parametrize("delivered", [False, True])
+def test_key_rotation_invalidates_old_links_and_new_links_still_work(
+    client, tmp_path, purpose, delivered
+):
+    register_and_login(client)
+    if purpose == "reset":
+        assert (
+            client.post(
+                BASE + "/password/reset-request", json={"email": "alice@example.com"}
+            ).status_code
+            == 202
+        )
+    raw, token_id = latest_token(client, purpose)
+    settings = client.app.state.settings
+    if delivered:
+        assert (
+            deliver_batch(
+                client.app.state.session_factory,
+                replace(settings, mail_outbox=str(tmp_path / "mail")),
+            )
+            >= 1
+        )
+        with client.app.state.session_factory() as session:
+            assert session.get(AccountToken, token_id).sent_at is not None
+    client.app.state.settings = replace(
+        settings, jwt_secret="rotated-signing-key-for-tests-" * 3
+    )
+    route = "/email/verify" if purpose == "verify" else "/password/reset"
+    payload = {"token": raw}
+    if purpose == "reset":
+        payload["password"] = "NewPassword123"
+    assert client.post(BASE + route, json=payload).status_code == 400
+    login = client.post(
+        BASE + "/login", json={"email": "alice@example.com", "password": PASSWORD}
+    )
+    assert login.status_code == 200
+    headers = {"Authorization": "Bearer " + login.json()["access_token"]}
+    assert client.get(BASE + "/me", headers=headers).json()["email_verified"] is False
+    if purpose == "verify":
+        assert client.post(BASE + "/email/request", headers=headers).status_code == 202
+    else:
+        assert (
+            client.post(
+                BASE + "/password/reset-request", json={"email": "alice@example.com"}
+            ).status_code
+            == 202
+        )
+    fresh, _ = latest_token(client, purpose)
+    assert fresh != raw
+    payload["token"] = fresh
+    assert client.post(BASE + route, json=payload).status_code == 200
+    assert client.post(BASE + route, json=payload).status_code == 400
+
+
+@pytest.mark.parametrize("purpose", ["verify", "reset"])
+def test_email_links_reject_non_ascii_secrets_without_server_errors(client, purpose):
+    register_and_login(client)
+    if purpose == "reset":
+        client.post(
+            BASE + "/password/reset-request", json={"email": "alice@example.com"}
+        )
+    raw, _ = latest_token(client, purpose)
+    payload = {"token": raw[:-1] + "é"}
+    route = "/email/verify" if purpose == "verify" else "/password/reset"
+    if purpose == "reset":
+        payload["password"] = "NewPassword123"
+    assert client.post(BASE + route, json=payload).status_code == 400
+    payload["token"] = raw
+    assert client.post(BASE + route, json=payload).status_code == 200
