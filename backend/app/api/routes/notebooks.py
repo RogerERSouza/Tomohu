@@ -39,7 +39,7 @@ def as_summary(notebook: NotebookRecord) -> NotebookSummary:
 @router.get("", response_model=list[NotebookSummary])
 def list_notebooks(
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> list[NotebookSummary]:
     return [as_summary(item) for item in NotebookService().list_owned(session, user.id)]
 
@@ -53,7 +53,7 @@ def list_notebooks(
 def create_notebook(
     payload: NotebookCreate,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> NotebookResponse:
     notebook = NotebookService().create(session, payload.snapshot, user.id)
     return as_response(notebook.id, notebook.revision, notebook.snapshot)
@@ -65,7 +65,7 @@ def create_notebook(
 def get_notebook(
     notebook_id: str,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> NotebookResponse:
     notebook = NotebookService().get(session, notebook_id, user.id)
     return as_response(notebook.id, notebook.revision, notebook.snapshot)
@@ -79,7 +79,7 @@ def replace_notebook(
     payload: NotebookReplace,
     response: Response,
     user: User = Depends(require_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session, scope="function"),
 ) -> NotebookResponse:
     notebook = NotebookService().replace(
         session, notebook_id, payload.revision, payload.snapshot, user.id

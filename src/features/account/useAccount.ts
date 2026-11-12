@@ -34,6 +34,7 @@ export function useAccount() {
   } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const pending = useRef(false)
   const generation = useRef(0)
   useEffect(
@@ -80,7 +81,9 @@ export function useAccount() {
         error instanceof ApiError &&
         error.status === 422
       )
-        setError('Confira o e-mail e use uma senha de 15 a 128 caracteres.')
+        setError(
+          'Confira o e-mail e a senha. Para criar uma senha, use de 5 a 128 caracteres, com maiúscula, minúscula e número.',
+        )
       else setError(apiErrorMessage(error))
     } finally {
       pending.current = false
@@ -92,6 +95,7 @@ export function useAccount() {
     password: string,
     register: boolean,
   ) {
+    setNotice('')
     await run(async () => {
       const request = generation.current
       const guest = createApiClient(origin)
@@ -102,13 +106,28 @@ export function useAccount() {
       if (request !== generation.current) return
       setSession({ user, ...credentials })
       setItems(owned)
-      setWorkspace(null)
+      setWorkspace((current) => (current?.ownerId === user.id ? current : null))
+      if (register)
+        setNotice(
+          'Conta criada. Confira o e-mail para confirmar seu endereço; o link expira em 30 minutos.',
+        )
     }, true)
   }
   async function refresh() {
     if (!api) return
     await run(async () => {
       setItems(await api.list())
+    })
+  }
+  async function refreshUser() {
+    if (!api || !session) return
+    await run(async () => {
+      const user = await api.me()
+      setSession((current) =>
+        current?.token === session.token && current.user.id === user.id
+          ? { ...current, user }
+          : current,
+      )
     })
   }
   async function open(id: string) {
@@ -131,14 +150,36 @@ export function useAccount() {
       window.location.hash = ''
     })
   }
-  function logout() {
-    if (pending.current) return
-    generation.current++
-    setSession(null)
-    setWorkspace(null)
-    setItems([])
+  async function requestReset(email: string) {
     setError('')
-    window.location.hash = ''
+    try {
+      await createApiClient(origin).requestReset(email)
+    } catch (error) {
+      setError(apiErrorMessage(error))
+      throw error
+    }
+  }
+  async function logout() {
+    if (pending.current) return
+    await run(async () => {
+      let warning = ''
+      if (api) {
+        try {
+          await api.logout()
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 401))
+            warning =
+              'Você saiu neste navegador. Não foi possível confirmar o encerramento no servidor; a sessão remota pode continuar válida até expirar.'
+        }
+      }
+      generation.current++
+      setSession(null)
+      setWorkspace(null)
+      setItems([])
+      setError('')
+      setNotice(warning)
+      window.location.hash = ''
+    })
   }
   return {
     enabled: Boolean(origin),
@@ -147,10 +188,15 @@ export function useAccount() {
     workspace,
     busy,
     error,
+    notice,
+    setNotice,
+    requestReset,
     api,
+    perform: run,
     authenticate,
     open,
     refresh,
+    refreshUser,
     create,
     logout,
     expire: () =>

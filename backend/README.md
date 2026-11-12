@@ -1,4 +1,4 @@
-# Tomohu API · 0.20.0
+# Tomohu API · 0.21.0
 
 FastAPI, SQLAlchemy, PostgreSQL and Alembic. The frontend now supports optional authenticated workspaces and explicit synchronization, while guest data and pending account edits remain safely separated in browser storage.
 
@@ -31,7 +31,7 @@ The application never creates tables on startup. Apply migrations before using `
 | GET    | `/api/v1/notebooks/{id}` | Bearer token; only the owner can read                      |
 | PUT    | `/api/v1/notebooks/{id}` | Bearer token, revision and snapshot; 409 on stale revision |
 
-Passwords contain 15–128 characters and are stored only as salted Argon2id hashes. Email identifiers are case-insensitive. Unknown account and wrong password return the same 401. Duplicate registration returns 409. Tokens expire after 15 minutes by default; no refresh tokens are issued, and the frontend keeps bearer tokens only in memory.
+New passwords contain 5–128 characters with an ASCII uppercase letter, lowercase letter and digit; existing passwords remain valid for login. Passwords are stored only as salted Argon2id hashes. Email identifiers are case-insensitive. Unknown account and wrong password return the same 401. Duplicate registration returns 409. Tokens expire after 15 minutes by default; no refresh tokens are issued, and the frontend keeps bearer tokens only in memory.
 
 Use Swagger `/docs`: register, login, copy access_token, click Authorize and paste the token value (the HTTP Bearer scheme adds the prefix). Then call `/auth/me` or create a synthetic notebook. Never send real personal data to an unreviewed public deployment.
 
@@ -85,7 +85,7 @@ The database name must end in `_test`. Each test creates its own random schema a
 - `app/core/`: configuration, hashing/token primitives, transactions and rate limits.
 - `migrations/`: reviewed Alembic schema history.
 
-See [ADR 0001](../docs/architecture/0001-authentication-and-notebook-ownership.md) for security trade-offs and deferred production requirements. Account recovery, verified email, logout/revocation and shared production rate limiting remain outside the 0.20 integration scope.
+See [ADR 0001](../docs/architecture/0001-authentication-and-notebook-ownership.md) for security trade-offs and deferred production requirements. Account recovery, verified email and logout/revocation are covered by [ADR 0004](../docs/architecture/0004-account-lifecycle.md). Shared production rate limiting remains deferred.
 
 ## 0.20 account integration
 
@@ -94,3 +94,36 @@ See [ADR 0001](../docs/architecture/0001-authentication-and-notebook-ownership.m
 Snapshot create/replace now validate calendar values, reminder intervals, nested identifiers and finite/nonnegative counter totals in addition to hierarchy/ownership rules. Rejected replacements leave the existing revision unchanged. API size limits still apply; the frontend checks these before upload without truncating guest data.
 
 The frontend uses memory-only tokens and explicit synchronization. Configure development CORS for the frontend origin (default localhost/127.0.0.1 port 5173); integration tests use port 4173. A deployed frontend requires an independently deployed HTTPS API and explicit production CORS, PostgreSQL and a stable signing secret.
+
+## 0.21 account lifecycle
+
+Run `python -m alembic upgrade head` before starting this API. Migration 03 preserves
+existing passwords, notebook IDs, ownership, snapshots and revisions. Previously
+issued bearer tokens must sign in again because they have no database session.
+
+Configure a stable `TOMOHU_JWT_SECRET` in `backend/.env` and the correct
+`TOMOHU_FRONTEND_URL`, including the frontend base path. API and mail worker MUST
+share the same database and secret. Start the worker in another terminal with
+`python -m app.email_worker`, or deliver one batch with `--once`. Without the
+worker, requests are queued but no email is delivered. The worker refuses to run
+with an automatically generated ephemeral secret.
+
+Local default: `TOMOHU_MAIL_MODE=outbox` creates ignored private `.eml` files in
+`backend/.outbox`. Open a file as text and copy its link into the browser. Do not
+commit, publish or share those files. Links expire 30 minutes after creation.
+Production requires HTTPS frontend, explicit CORS, stable secret and `smtp` mode
+with host, username, password, sender and STARTTLS port (usually 587). Implicit TLS
+port 465 is not supported. Run one worker for SQLite; PostgreSQL workers coordinate
+with row locks. Delivery retries at most five times while the link is valid. A
+worker crash after SMTP acceptance may cause duplicate delivery of the same link;
+confirmation is still single-use. Monitor failed/expired queue records.
+
+Routes under `/api/v1/auth`: `POST password/reset-request`, `POST password/reset`,
+`POST password/change`, `POST email/request`, `POST email/verify`, `GET sessions`,
+`DELETE sessions/{id}`, `POST sessions/revoke-all` and `POST logout`. Authenticated
+routes use the same memory-only bearer header. There are no refresh cookies.
+Password changes/resets revoke all sessions without deleting browser copies.
+Revocation blocks subsequent requests, not requests already in flight or data
+already downloaded. Verification is informative in 0.21; it does not newly lock
+out legacy accounts. Account existence during registration still returns 409,
+while reset requests intentionally return a generic 202.

@@ -63,6 +63,10 @@ def main() -> None:
             "TOMOHU_LIVE_API": "1",
             "VITE_API_BASE_URL": "http://127.0.0.1:8000",
             "PYTHONPATH": str(ROOT / "backend"),
+            "TOMOHU_PYTHON": sys.executable,
+            "TOMOHU_MAIL_MODE": "outbox",
+            "TOMOHU_MAIL_OUTBOX": str(Path(directory) / "mail"),
+            "TOMOHU_FRONTEND_URL": "http://127.0.0.1:4173/",
         }
         subprocess.run(
             [sys.executable, "-m", "alembic", "upgrade", "head"],
@@ -87,7 +91,13 @@ def main() -> None:
             cwd=ROOT / "backend",
             env=env,
         )
+        worker = None
         try:
+            worker = subprocess.Popen(
+                [sys.executable, "-m", "app.email_worker"],
+                cwd=ROOT / "backend",
+                env=env,
+            )
             for _ in range(100):
                 if server.poll() is not None:
                     raise RuntimeError("The isolated API failed to start.")
@@ -110,6 +120,8 @@ def main() -> None:
                 check=True,
             )
         finally:
+            if worker is not None:
+                stop_server(worker)
             stop_server(server)
 
 

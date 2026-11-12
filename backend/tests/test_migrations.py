@@ -99,3 +99,42 @@ def test_notebook_ownership_has_a_real_foreign_key(database_url, migration_confi
             {"snapshot": "{}"},
         )
     engine.dispose()
+
+
+def test_account_lifecycle_upgrade_preserves_existing_credentials(
+    database_url, migration_config
+):
+    command.upgrade(migration_config, "20261107_02")
+    engine = create_engine_for_url(database_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO users (id,email,password_hash,is_active) "
+                "VALUES ('existing','existing@example.com','unchanged-hash',true)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO notebooks (id,owner_id,schema_version,snapshot,revision) "
+                "VALUES ('owned','existing',1,:snapshot,7)"
+            ),
+            {
+                "snapshot": (
+                    '{"schemaVersion":1,"sections":[],"contents":[],"reminders":[]}'
+                )
+            },
+        )
+    command.upgrade(migration_config, "head")
+    with engine.connect() as connection:
+        user = connection.execute(
+            text(
+                "SELECT password_hash,email_verified,credential_version "
+                "FROM users WHERE id='existing'"
+            )
+        ).one()
+        assert tuple(user) == ("unchanged-hash", False, 0)
+        assert connection.execute(
+            text("SELECT owner_id,revision FROM notebooks WHERE id='owned'")
+        ).one() == ("existing", 7)
+    command.check(migration_config)
+    engine.dispose()

@@ -1,27 +1,46 @@
 import { useState } from 'react'
+import { passwordHint, validNewPassword } from './passwordPolicy'
+import { ResetRequest } from './ResetRequest'
 
 export function CredentialsForm({
   busy,
   canSwitch,
   expired,
   onAuthenticate,
+  onRequestReset,
 }: {
   busy: boolean
   canSwitch: boolean
   expired: boolean
+  onRequestReset: (email: string) => Promise<void>
   onAuthenticate: (
     email: string,
     password: string,
     register: boolean,
   ) => Promise<void>
 }) {
+  const [recover, setRecover] = useState(false)
+  const [validation, setValidation] = useState('')
   const [register, setRegister] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  if (recover)
+    return (
+      <ResetRequest
+        busy={busy}
+        onSubmit={onRequestReset}
+        onBack={() => setRecover(false)}
+      />
+    )
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault()
+        if (register && !validNewPassword(password)) {
+          setValidation(passwordHint)
+          return
+        }
+        setValidation('')
         const secret = password
         setPassword('')
         void onAuthenticate(email, secret, register)
@@ -51,7 +70,7 @@ export function CredentialsForm({
           required
           type="password"
           autoComplete={register ? 'new-password' : 'current-password'}
-          minLength={15}
+          minLength={register ? 5 : 1}
           maxLength={128}
           value={password}
           disabled={busy || !canSwitch}
@@ -59,13 +78,20 @@ export function CredentialsForm({
         />
       </label>
       <p className="muted">
-        Use entre 15 e 128 caracteres. A sessão precisa ser renovada após
-        expirar ou recarregar a página.
+        {register
+          ? passwordHint
+          : 'A sessão precisa ser renovada após expirar ou recarregar a página.'}
       </p>
-      {register && (
-        <p className="muted">
-          Guarde sua senha: a recuperação de senha ainda não está disponível.
-        </p>
+      {validation && <p role="alert">{validation}</p>}
+      {!register && (
+        <button
+          type="button"
+          className="text-button"
+          disabled={busy || !canSwitch}
+          onClick={() => setRecover(true)}
+        >
+          Esqueci minha senha
+        </button>
       )}
       <button className="primary-button" disabled={busy || !canSwitch}>
         {busy ? 'Aguarde…' : register ? 'Criar conta e entrar' : 'Entrar'}
