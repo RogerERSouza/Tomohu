@@ -2,6 +2,16 @@
 
 - Fix a transaction race: commit API changes before sending successful responses, so newly issued sessions are immediately usable.
 
+## 0.22.0
+
+- Reformulate privacy around creation forms and per-item menus: compact password prompts open the normal section/content screens, with automatic private saves and draft recovery.
+- Create new private items directly outside public snapshots, retain locked-card sibling positions, and return public snapshots with privacy mutations to avoid a second refresh dependency.
+- Keep the dedicated private list optional, remove the separate editor, and preserve migration 04 through an additive migration 05.
+
+- Add an independent privacy password, verified-email recovery and short-lived session-bound unlock grants.
+- Separate protected section trees and content from public snapshots, cache and search; enforce ownership and revision checks.
+- Add original-location locked cards, a dedicated private area and private editing with explicit export/restoration.
+
 ## 0.21.0
 
 - Validate email links against the current signing key, keep local logout available when remote revocation fails and retain refreshed verification status in the account controller.

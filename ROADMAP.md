@@ -14,6 +14,8 @@ Uma entrega pode ter vários commits. A versão só sobe quando a função estiv
 
 ## Current delivery sequence
 
+- [x] `0.22.0` — Independent account privacy password, protected sections/content, verified-email recovery, private-area display preference and access-controlled private persistence.
+
 - [x] `0.18.0` — Backend accounts: registration, login, short-lived bearer tokens, notebook ownership, migrations, and authorization tests. Frontend account integration is a later delivery.
 - [x] `0.19.0` — Refactor the frontend by feature, with component and browser regression coverage established before extraction. Preserve current behavior and local data.
 - [x] `0.19.0` review fixes — Resume autosave after confirmed recovery, normalize reminder times, reject invalid counter timestamps, and keep mobile tag controls visible.
@@ -154,3 +156,5 @@ Toda função nova deve ser analisada pelo ponto de vista de quem está usando o
 - Se uma ideia exigir backend, autenticação ou segurança, planejar primeiro em vez de improvisar no front-end.
 
 - [x] `0.21.0` transaction boundary fix — Commit API transactions before sending responses; cover session visibility at the ASGI response boundary.
+
+- [x] `0.22.0` privacy interaction reformulation — Per-item privacy controls during creation/editing, compact password prompt, original-location navigation and automatic private saves.

@@ -33,6 +33,10 @@ class User(Base):
     credential_version: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
+    privacy_hash: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    privacy_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

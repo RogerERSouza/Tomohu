@@ -8,12 +8,14 @@ export function Modal({
   children,
   closeOnBackdrop = true,
   closeDisabled = false,
+  compact = false,
 }: {
   title: string
   onClose: () => void
   children: ReactNode
   closeOnBackdrop?: boolean
   closeDisabled?: boolean
+  compact?: boolean
 }) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -29,7 +31,7 @@ export function Modal({
   return (
     <dialog
       ref={dialogRef}
-      className="modal"
+      className={compact ? 'modal modal-compact' : 'modal'}
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault()

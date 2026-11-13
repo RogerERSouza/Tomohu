@@ -127,3 +127,9 @@ Revocation blocks subsequent requests, not requests already in flight or data
 already downloaded. Verification is informative in 0.21; it does not newly lock
 out legacy accounts. Account existence during registration still returns 409,
 while reset requests intentionally return a generic 202.
+
+## Privacy (0.22.0)
+
+Migration `20261112_04` adds independent Argon2 privacy credentials and private aggregates. `/api/v1/privacy` requires the account bearer token; protected operations additionally require `X-Privacy-Token`. The five-minute grant binds the current account session and privacy credential version. Setup and email recovery require a verified address. Email worker links use purpose `private`; no new environment secrets are required. The private JSON is access controlled, not end-to-end encrypted. Back up the whole PostgreSQL database to include private aggregates. Run `python scripts/run_live_e2e.py --suite privacy` from the repository root with the dedicated E2E database URL for real recovery coverage.
+
+Migration `20261112_05` adds private sibling positions. Privacy create/protect/restore return the new public notebook in the same committed response. New private roots can be created directly with `POST /api/v1/privacy/notebooks/{id}/create`; all private writes remain revision checked. Five consecutive failed unlock attempts are limited separately from settings/recovery requests; successful unlocks do not exhaust ordinary per-item navigation.

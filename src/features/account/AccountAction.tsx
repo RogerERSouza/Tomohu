@@ -12,10 +12,12 @@ export function AccountAction({
   action,
   onClose,
   onReset,
+  onPrivacyReset,
 }: {
   action: AccountLink
   onClose: () => void
   onReset: () => void
+  onPrivacyReset?: () => void
 }) {
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -35,10 +37,14 @@ export function AccountAction({
         done
           ? action.purpose === 'verify'
             ? 'E-mail confirmado'
-            : 'Senha redefinida'
+            : action.purpose === 'private'
+              ? 'Senha de privacidade redefinida'
+              : 'Senha redefinida'
           : action.purpose === 'verify'
             ? 'Confirmar e-mail'
-            : 'Criar nova senha'
+            : action.purpose === 'private'
+              ? 'Nova senha de privacidade'
+              : 'Criar nova senha'
       }
       closeOnBackdrop={false}
       closeDisabled={busy}
@@ -57,7 +63,9 @@ export function AccountAction({
           <p role="status">
             {action.purpose === 'verify'
               ? 'E-mail confirmado.'
-              : 'Senha redefinida e sessões encerradas. Entre com a nova senha.'}{' '}
+              : action.purpose === 'private'
+                ? 'Senha de privacidade redefinida. Desbloqueie novamente com a nova senha.'
+                : 'Senha redefinida e sessões encerradas. Entre com a nova senha.'}{' '}
             Seus cadernos foram preservados.
           </p>
         ) : (
@@ -67,7 +75,7 @@ export function AccountAction({
               event.preventDefault()
               if (busy) return
               if (
-                action.purpose === 'reset' &&
+                action.purpose !== 'verify' &&
                 (!validNewPassword(password) || password !== confirmation)
               ) {
                 setError(
@@ -89,7 +97,10 @@ export function AccountAction({
                   )
                   if (action.purpose === 'verify')
                     await api.verifyEmail(action.token)
-                  else {
+                  else if (action.purpose === 'private') {
+                    await api.privacyReset(action.token, secret)
+                    onPrivacyReset?.()
+                  } else {
                     await api.resetPassword(action.token, secret)
                     onReset()
                   }
@@ -107,7 +118,7 @@ export function AccountAction({
               })()
             }}
           >
-            {action.purpose === 'reset' && (
+            {action.purpose !== 'verify' && (
               <>
                 <p className="muted">{passwordHint}</p>
                 <label className="field">

@@ -1,9 +1,11 @@
 from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from app.models.notebook import NotebookRecord
+from app.models.private import PrivateItem
 from app.repositories.notebook import NotebookRepository
 from app.schemas.notebook import NotebookSnapshot
 from app.services.snapshot_validation import validate_snapshot_values
@@ -60,6 +62,22 @@ class NotebookService:
             raise NotebookConflict(
                 "Notebook changed elsewhere. Load it before saving again."
             )
+        public_sections = {s.id for s in snapshot.sections}
+        public_contents = {c.id for c in snapshot.contents}
+        for item in session.scalars(
+            select(PrivateItem).where(PrivateItem.notebook_id == notebook_id)
+        ):
+            private_sections = (
+                {s["id"] for s in item.snapshot["sections"]}
+                if item.kind == "section"
+                else set()
+            )
+            private_contents = {c["id"] for c in item.snapshot["contents"]}
+            if public_sections & private_sections or public_contents & private_contents:
+                raise NotebookConflict(
+                    "A protected item cannot be replaced through public sync. "
+                    "Restore it explicitly."
+                )
         notebook.schema_version = snapshot.schemaVersion
         notebook.snapshot = snapshot.model_dump(mode="json", exclude_unset=True)
         notebook.revision += 1

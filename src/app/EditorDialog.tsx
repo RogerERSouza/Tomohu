@@ -1,3 +1,5 @@
+import type { ItemPrivacyControls } from '../features/privacy/privacyTypes'
+import { ContentSettings } from '../features/contents/ContentSettings'
 import type { Dispatch, SetStateAction, ReactNode } from 'react'
 import { Modal } from '../components/Modal'
 import { SectionForm } from '../features/sections/SectionForm'
@@ -25,6 +27,7 @@ type Props = {
   onImport: () => void
   importError: string
   replacementError: string
+  privacy?: ItemPrivacyControls
   accountPanel: ReactNode
 }
 export function EditorDialog({
@@ -41,6 +44,7 @@ export function EditorDialog({
   importError,
   replacementError,
   accountPanel,
+  privacy,
 }: Props) {
   const close = () => setEditor(null)
   return (
@@ -50,17 +54,19 @@ export function EditorDialog({
           ? editor.section
             ? 'Editar seção'
             : 'Nova seção'
-          : editor.kind === 'content'
-            ? 'Novo conteúdo'
-            : editor.kind === 'settings'
-              ? 'Ajustes'
-              : editor.kind === 'expired-reminder'
-                ? 'Prazo encerrado'
-                : editor.kind === 'import-backup'
-                  ? 'Importar backup'
-                  : editor.reminder
-                    ? 'Editar lembrete'
-                    : 'Novo lembrete'
+          : editor.kind === 'content-settings'
+            ? 'Configurar conteúdo'
+            : editor.kind === 'content'
+              ? 'Novo conteúdo'
+              : editor.kind === 'settings'
+                ? 'Ajustes'
+                : editor.kind === 'expired-reminder'
+                  ? 'Prazo encerrado'
+                  : editor.kind === 'import-backup'
+                    ? 'Importar backup'
+                    : editor.reminder
+                      ? 'Editar lembrete'
+                      : 'Novo lembrete'
       }
       onClose={close}
     >
@@ -92,7 +98,24 @@ export function EditorDialog({
       {editor.kind === 'section' && (
         <SectionForm
           section={editor.section}
-          onSave={(values) => {
+          privacyState={privacy?.state('section', editor.section?.id)}
+          onSave={(values, makePrivate) => {
+            if (privacy) {
+              const state = privacy.state('section', editor.section?.id)
+              privacy.section(
+                editor.section,
+                currentSection?.id ?? null,
+                values,
+                Boolean(makePrivate),
+              )
+              if (
+                (state === 'public' && makePrivate) ||
+                (state === 'private' && !makePrivate)
+              )
+                return
+              close()
+              return
+            }
             actions.saveSection(
               editor.section,
               currentSection?.id ?? null,
@@ -110,10 +133,49 @@ export function EditorDialog({
       )}
       {editor.kind === 'content' && currentSection && (
         <ContentForm
-          onSave={(kind, title) => {
+          privacyState={privacy?.state('content')}
+          onSave={(kind, title, makePrivate) => {
+            if (privacy && makePrivate) {
+              const id = privacy.content(
+                undefined,
+                currentSection.id,
+                kind,
+                title,
+                true,
+              )
+              if (privacy.state('content') === 'inherited') {
+                close()
+                if (id) navigate('content', id)
+              }
+              return
+            }
             const content = actions.addContent(kind, currentSection.id, title)
             close()
             navigate('content', content.id)
+          }}
+        />
+      )}
+      {editor.kind === 'content-settings' && (
+        <ContentSettings
+          content={editor.content}
+          privacyState={privacy?.state('content', editor.content.id)}
+          onSave={(title, makePrivate) => {
+            if (privacy) {
+              const state = privacy.state('content', editor.content.id)
+              privacy.content(
+                editor.content,
+                editor.content.sectionId,
+                editor.content.kind,
+                title,
+                makePrivate,
+              )
+              if (
+                (state === 'public' && makePrivate) ||
+                (state === 'private' && !makePrivate)
+              )
+                return
+            } else actions.updateContent({ ...editor.content, title })
+            close()
           }}
         />
       )}
@@ -142,6 +204,10 @@ export function EditorDialog({
           }
         />
       )}
+      {privacy?.error &&
+        ['section', 'content', 'content-settings'].includes(editor.kind) && (
+          <p role="alert">{privacy.error}</p>
+        )}
     </Modal>
   )
 }

@@ -220,7 +220,7 @@ def test_cors_allows_configured_origin_and_rejects_other_origins(client):
 
 def test_openapi_documents_bearer_and_redacts_password_schema(client):
     schema = client.get("/openapi.json").json()
-    assert schema["info"]["version"] == "0.21.0"
+    assert schema["info"]["version"] == "0.22.0"
     assert schema["paths"]["/api/v1/notebooks"]["post"]["security"] == [
         {"HTTPBearer": []}
     ]

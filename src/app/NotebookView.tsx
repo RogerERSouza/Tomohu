@@ -1,3 +1,5 @@
+import type { PrivateCell } from '../features/privacy/PrivateCards'
+import type { ItemPrivacyControls } from '../features/privacy/privacyTypes'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { useNotebook } from '../features/notebook/useNotebook'
@@ -26,12 +28,20 @@ export function NotebookView({
   status,
   interactionBlocked = false,
   onExport,
+  privacy,
+  beforeSectionNavigate,
+  privateCells,
+  initialEditor = null,
 }: {
   controller: ReturnType<typeof useNotebook>
   accountPanel: ReactNode
   status?: ReactNode
   interactionBlocked?: boolean
   onExport?: () => void
+  initialEditor?: Editor
+  privateCells?: (parentId: string | null) => PrivateCell[]
+  privacy?: ItemPrivacyControls
+  beforeSectionNavigate?: (id?: string) => boolean
 }) {
   const { notebook, setNotebook, replaceNotebook, storageError } = controller
   const { currentContent, currentSection, isHome, isMissing, path } =
@@ -48,7 +58,7 @@ export function NotebookView({
     controls,
     isCompactLayout,
   )
-  const [editor, setEditor] = useState<Editor>(null)
+  const [editor, setEditor] = useState<Editor>(initialEditor)
   const {
     importInputRef,
     importError,
@@ -59,6 +69,7 @@ export function NotebookView({
   )
   const exportNotebook = onExport ?? downloadBackup
   function openSection(id?: string) {
+    if (beforeSectionNavigate && !beforeSectionNavigate(id)) return
     controls.reset()
     navigate(id ? 'section' : undefined, id)
   }
@@ -93,6 +104,9 @@ export function NotebookView({
         ) : currentContent ? (
           <ContentPage
             content={currentContent}
+            onConfigure={() =>
+              setEditor({ kind: 'content-settings', content: currentContent })
+            }
             actions={actions}
             hourFormat={preferences.hourFormat}
             openSection={openSection}
@@ -100,6 +114,7 @@ export function NotebookView({
         ) : (
           <NotebookPage
             notebook={notebook}
+            privateCells={privateCells?.(currentSection?.id ?? null)}
             currentSection={currentSection}
             isHome={isHome}
             now={now}
@@ -109,6 +124,9 @@ export function NotebookView({
             actions={actions}
             openSection={openSection}
             onEditSection={(section) => setEditor({ kind: 'section', section })}
+            onEditContent={(content) =>
+              setEditor({ kind: 'content-settings', content })
+            }
             onOpenContent={(id) => navigate('content', id)}
             onOpenReminder={openReminder}
             onCreateReminder={() => setEditor({ kind: 'reminder' })}
@@ -136,6 +154,7 @@ export function NotebookView({
       {editor && (
         <EditorDialog
           editor={editor}
+          privacy={privacy}
           importBlocked={interactionBlocked}
           setEditor={setEditor}
           currentSection={currentSection}

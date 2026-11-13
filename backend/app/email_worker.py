@@ -71,7 +71,12 @@ def deliver_batch(factory, settings: Settings) -> int:
             if (
                 user is None
                 or not user.is_active
-                or user.credential_version != record.credential_version
+                or (
+                    user.privacy_version
+                    if record.purpose == "private"
+                    else user.credential_version
+                )
+                != record.credential_version
             ):
                 record.used_at = now
                 continue
@@ -90,6 +95,8 @@ def deliver_batch(factory, settings: Settings) -> int:
             message["Subject"] = (
                 "Tomohu — confirmar e-mail"
                 if record.purpose == "verify"
+                else "Tomohu — recuperar senha de privacidade"
+                if record.purpose == "private"
                 else "Tomohu — recuperar senha"
             )
             message["Message-ID"] = f"<{record.id}@tomohu>"

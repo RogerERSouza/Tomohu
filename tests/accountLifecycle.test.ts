@@ -34,3 +34,12 @@ test('account action links are separate from notebook routes and bounded', () =>
   ])
     assert.equal(readAccountLink(value), null)
 })
+
+test('privacy recovery has its own link purpose and rejects malformed routes', () => {
+  assert.deepEqual(readAccountLink('#account/private/example-token'), {
+    purpose: 'private',
+    token: 'example-token',
+  })
+  assert.equal(readAccountLink('#account/private/'), null)
+  assert.equal(readAccountLink('#account/private/token/extra'), null)
+})

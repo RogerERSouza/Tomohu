@@ -80,7 +80,9 @@ jobs:
         working-directory: .
         env:
           TOMOHU_E2E_DATABASE_URL: postgresql+psycopg://tomohu:test-only-password@localhost:5432/tomohu_test
-        run: python scripts/run_live_e2e.py
+        run: |
+          python scripts/run_live_e2e.py
+          python scripts/run_live_e2e.py --suite privacy
 
       - uses: actions/upload-artifact@v4
         if: failure()

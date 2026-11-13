@@ -217,6 +217,7 @@ export function useAccountNotebook(
   }
   return {
     notebook,
+    revision: base.revision,
     setNotebook,
     replaceNotebook,
     storageError,

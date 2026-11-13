@@ -9,6 +9,7 @@ from app.api.routes.account import router as account_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as health_router
 from app.api.routes.notebooks import router as notebooks_router
+from app.api.routes.privacy import router as privacy_router
 from app.core.config import Settings, get_settings
 from app.core.database import create_engine_for_url, create_session_factory
 from app.core.rate_limit import AuthRateLimiter
@@ -20,7 +21,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     active_settings = settings or get_settings()
     app = FastAPI(
         title=active_settings.app_name,
-        version="0.21.0",
+        version="0.22.0",
         description="Tomohu API.",
     )
     app.state.auth_limiter = AuthRateLimiter()
@@ -32,7 +33,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=list(active_settings.cors_origins),
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "X-Privacy-Token"],
     )
 
     async def notebook_error(request: Request, error: Exception) -> JSONResponse:
@@ -77,6 +78,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(account_router)
+    app.include_router(privacy_router)
     app.include_router(health_router)
     app.include_router(notebooks_router)
     return app

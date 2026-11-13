@@ -8,9 +8,25 @@ import { useNotebook } from '../features/notebook/useNotebook'
 import { useAccountNotebook } from '../features/sync/useAccountNotebook'
 import { SyncPanel } from '../features/sync/SyncPanel'
 import { useExportCheckpoint } from '../features/backup/useExportCheckpoint'
+import { LockedRouteGuard } from '../features/privacy/LockedRouteGuard'
+import { privateCells } from '../features/privacy/PrivateCards'
+import { usePrivacy } from '../features/privacy/usePrivacy'
+import type { PrivacyController } from '../features/privacy/usePrivacy'
+import { PrivacyPanel } from '../features/privacy/PrivacyPanel'
+import { PrivacyDialog } from '../features/privacy/PrivacyDialog'
+import { PrivateNotebookSession } from './PrivateNotebookSession'
+import { PrivacyUnlockDialog } from '../features/privacy/PrivacyUnlockDialog'
+import { publicPrivacyControls } from '../features/privacy/publicPrivacyControls'
+import { createNotebookActions } from '../features/notebook/createNotebookActions'
 import { NotebookView } from './NotebookView'
 
-function GuestWorkspace({ account }: { account: AccountController }) {
+function GuestWorkspace({
+  account,
+  privacy,
+}: {
+  account: AccountController
+  privacy: PrivacyController
+}) {
   const controller = useNotebook()
   const backup = useExportCheckpoint(controller.notebook)
   return (
@@ -25,13 +41,19 @@ function GuestWorkspace({ account }: { account: AccountController }) {
       }
       onExport={backup.exportNotebook}
       accountPanel={
-        <AccountPanel
-          account={account}
-          notebook={controller.notebook}
-          canSwitch={!controller.storageError || backup.hasExported}
-        />
+        <fieldset className="account-controls" disabled={privacy.busy}>
+          <AccountPanel
+            account={account}
+            notebook={controller.notebook}
+            canSwitch={!controller.storageError || backup.hasExported}
+          />
+          <PrivacyPanel
+            privacy={privacy}
+            authenticated={Boolean(account.session?.token)}
+          />
+        </fieldset>
       }
-      interactionBlocked={account.busy}
+      interactionBlocked={account.busy || privacy.busy}
     />
   )
 }
@@ -39,46 +61,95 @@ function ConnectedWorkspace({
   account,
   ownerId,
   remote,
+  privacy,
 }: {
   account: AccountController
   ownerId: string
+  privacy: PrivacyController
   remote: NonNullable<AccountController['workspace']>['remote']
 }) {
   const sync = useAccountNotebook(ownerId, remote, account.api, account.expire)
   const backup = useExportCheckpoint(sync.notebook)
+  if (privacy.opened)
+    return (
+      <PrivateNotebookSession
+        key={privacy.opened.item.id}
+        privacy={privacy}
+        document={privacy.opened}
+        publicBook={sync.notebook}
+        accountPanel={
+          <>
+            <PrivacyPanel
+              privacy={privacy}
+              authenticated={Boolean(account.session?.token)}
+            />
+            <AccountPanel
+              account={account}
+              notebook={sync.notebook}
+              canSwitch={!privacy.hasDraft}
+            />
+          </>
+        }
+      />
+    )
   return (
-    <NotebookView
-      controller={sync}
-      onExport={backup.exportNotebook}
-      interactionBlocked={sync.busy || account.busy}
-      status={
-        <p className="workspace-status" role="status">
-          Caderno da conta ·{' '}
-          {sync.dirty
-            ? 'alterações locais pendentes'
-            : 'última versão carregada'}
-          {!account.session?.token ? ' · sessão encerrada' : ''}
-        </p>
-      }
-      accountPanel={
-        <fieldset className="account-controls" disabled={sync.busy}>
-          <SyncPanel
-            sync={sync}
-            authenticated={Boolean(account.session?.token)}
-            onExport={backup.exportNotebook}
-          />
-          <AccountPanel
-            account={account}
-            notebook={sync.notebook}
-            canSwitch={!sync.storageError || !sync.dirty || backup.hasExported}
-          />
-        </fieldset>
-      }
-    />
+    <>
+      <LockedRouteGuard notebook={sync.notebook} privacy={privacy} />
+      <NotebookView
+        controller={sync}
+        privateCells={(parentId) => privateCells(privacy, parentId)}
+        privacy={
+          account.session?.token
+            ? publicPrivacyControls(
+                sync.notebook,
+                sync.revision,
+                sync.dirty || sync.blocked || Boolean(sync.storageError),
+                createNotebookActions(sync.setNotebook),
+                privacy,
+              )
+            : undefined
+        }
+        onExport={backup.exportNotebook}
+        interactionBlocked={sync.busy || account.busy || privacy.busy}
+        status={
+          <p className="workspace-status" role="status">
+            Caderno da conta ·{' '}
+            {sync.dirty
+              ? 'alterações locais pendentes'
+              : 'última versão carregada'}
+            {!account.session?.token ? ' · sessão encerrada' : ''}
+          </p>
+        }
+        accountPanel={
+          <fieldset
+            className="account-controls"
+            disabled={sync.busy || privacy.busy}
+          >
+            <SyncPanel
+              sync={sync}
+              authenticated={Boolean(account.session?.token)}
+              onExport={backup.exportNotebook}
+            />
+            <PrivacyPanel
+              privacy={privacy}
+              authenticated={Boolean(account.session?.token)}
+            />
+            <AccountPanel
+              account={account}
+              notebook={sync.notebook}
+              canSwitch={
+                !sync.storageError || !sync.dirty || backup.hasExported
+              }
+            />
+          </fieldset>
+        }
+      />
+    </>
   )
 }
 export default function App() {
   const account = useAccount()
+  const privacy = usePrivacy(account)
   const [action, setAction] = useState(() =>
     readAccountLink(window.location.hash),
   )
@@ -96,11 +167,12 @@ export default function App() {
     <ConnectedWorkspace
       key={`${account.workspace.ownerId}:${account.workspace.remote.id}:${account.workspace.remote.revision}`}
       account={account}
+      privacy={privacy}
       ownerId={account.workspace.ownerId}
       remote={account.workspace.remote}
     />
   ) : (
-    <GuestWorkspace account={account} />
+    <GuestWorkspace account={account} privacy={privacy} />
   )
   return (
     <>
@@ -109,6 +181,7 @@ export default function App() {
           key={`${action.purpose}:${action.token}`}
           action={action}
           onReset={account.expire}
+          onPrivacyReset={privacy.lock}
           onClose={() => {
             setAction(null)
             window.location.hash = previousRoute.current
@@ -117,6 +190,8 @@ export default function App() {
         />
       )}
       <div hidden={Boolean(action)}>{workspace}</div>
+      {!action && privacy.prompt && <PrivacyUnlockDialog privacy={privacy} />}
+      {!action && privacy.area && <PrivacyDialog privacy={privacy} />}
     </>
   )
 }
