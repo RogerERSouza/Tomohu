@@ -7,11 +7,19 @@ export function SectionForm({
   section,
   onSave,
   onRemove,
+  privacyState,
 }: {
   section?: Section
-  onSave: (values: Pick<Section, 'title' | 'emoji' | 'color' | 'tags'>) => void
+  onSave: (
+    values: Pick<Section, 'title' | 'emoji' | 'color' | 'tags'>,
+    makePrivate?: boolean,
+  ) => void
   onRemove?: () => void
+  privacyState?: 'public' | 'private' | 'inherited'
 }) {
+  const [makePrivate, setMakePrivate] = useState(
+    privacyState === 'private' || privacyState === 'inherited',
+  )
   const [title, setTitle] = useState(section?.title ?? '')
   const [hasTriedToSave, setHasTriedToSave] = useState(false)
   const [emoji, setEmoji] = useState(section?.emoji ?? '📁')
@@ -28,7 +36,10 @@ export function SectionForm({
         event.preventDefault()
         setHasTriedToSave(true)
         if (!title.trim()) return
-        onSave({ title: title.trim(), emoji: emoji.trim(), color, tags })
+        onSave(
+          { title: title.trim(), emoji: emoji.trim(), color, tags },
+          makePrivate,
+        )
       }}
     >
       <label className="field">
@@ -152,6 +163,20 @@ export function SectionForm({
           </div>
         )}
       </fieldset>
+      {privacyState && (
+        <label className="privacy-option">
+          <input
+            type="checkbox"
+            checked={makePrivate}
+            disabled={privacyState === 'inherited'}
+            onChange={(e) => setMakePrivate(e.target.checked)}
+          />
+          Seção privada
+          {privacyState === 'inherited' && (
+            <small>Protegida pela seção principal.</small>
+          )}
+        </label>
+      )}
       <button className="primary-button" type="submit">
         {section ? 'Salvar alterações' : 'Criar seção'}
       </button>

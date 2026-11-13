@@ -10,7 +10,9 @@ export function ContentPage({
   actions,
   hourFormat,
   openSection,
+  onConfigure,
 }: {
+  onConfigure?: () => void
   content: Content
   actions: NotebookActions
   hourFormat: HourFormat
@@ -23,6 +25,15 @@ export function ContentPage({
           <span className="eyebrow">{CONTENT_LABELS[content.kind]}</span>
           <h1>{content.title || 'Sem título'}</h1>
         </div>
+        {onConfigure && (
+          <button
+            className="icon-button"
+            aria-label={`Configurar ${content.title || 'conteúdo'}`}
+            onClick={onConfigure}
+          >
+            <Icon name="more" />
+          </button>
+        )}
         <button
           className="secondary-button"
           onClick={() => openSection(content.sectionId)}

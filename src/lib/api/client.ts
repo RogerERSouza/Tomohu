@@ -1,6 +1,13 @@
+import { parseRemoteNotebook as remote } from './remoteNotebook.ts'
+import type { RemoteNotebook } from './remoteNotebook.ts'
+export type { RemoteNotebook } from './remoteNotebook.ts'
+import { privacyApi } from './privacy.ts'
+import { ApiError } from './errors.ts'
+import { record, identifier } from './validation.ts'
+export { ApiError } from './errors.ts'
+export type { PrivateSummary, PrivateSnapshot } from './privacy.ts'
 import { AccountDataError } from './limits.ts'
 import { prepareAccountSnapshot } from './snapshot.ts'
-import { isNotebook } from '../notebookValidation.ts'
 import type { Notebook } from '../../types'
 
 export interface AccountUser {
@@ -14,25 +21,9 @@ export interface AccountSession {
   created_at: string
   expires_at: string
 }
-export interface RemoteNotebook {
-  id: string
-  revision: number
-  snapshot: Notebook
-}
 export type NotebookSummary = Pick<RemoteNotebook, 'id' | 'revision'> & {
   title?: string | null
 }
-export class ApiError extends Error {
-  status: number
-  constructor(status: number) {
-    super(`API request failed (${status})`)
-    this.status = status
-  }
-}
-const record = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object' && !Array.isArray(value))
-const identifier = (value: unknown): value is string =>
-  typeof value === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(value)
 function summary(value: unknown): value is NotebookSummary {
   return (
     record(value) &&
@@ -44,11 +35,6 @@ function summary(value: unknown): value is NotebookSummary {
       value.title === null ||
       typeof value.title === 'string')
   )
-}
-function remote(value: unknown): RemoteNotebook {
-  if (!summary(value) || !('snapshot' in value) || !isNotebook(value.snapshot))
-    throw new ApiError(502)
-  return { id: value.id, revision: value.revision, snapshot: value.snapshot }
 }
 export function apiBaseUrl(value: string): string {
   const url = new URL(value)
@@ -73,6 +59,7 @@ export function createApiClient(origin: string, token = '') {
     path: string,
     method = 'GET',
     body?: unknown,
+    privacyToken = '',
   ): Promise<unknown> {
     let response: Response
     try {
@@ -85,6 +72,7 @@ export function createApiClient(origin: string, token = '') {
         headers: {
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(privacyToken ? { 'X-Privacy-Token': privacyToken } : {}),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       })
@@ -99,6 +87,7 @@ export function createApiClient(origin: string, token = '') {
     }
   }
   return {
+    ...privacyApi(request),
     async requestReset(email: string) {
       await request('/auth/password/reset-request', 'POST', { email })
     },

@@ -9,7 +9,9 @@ export function ContentCard({
   onOpen,
   onCount,
   onChange,
+  onConfigure,
 }: {
+  onConfigure?: () => void
   content: Content
   onOpen: () => void
   onCount: (delta: number) => void
@@ -36,6 +38,18 @@ export function ContentCard({
           }
         }}
       >
+        {onConfigure && (
+          <button
+            className="icon-button content-menu"
+            aria-label={`Configurar ${content.title}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onConfigure()
+            }}
+          >
+            <Icon name="more" />
+          </button>
+        )}
         <button
           type="button"
           className="content-summary"
@@ -124,6 +138,15 @@ export function ContentCard({
 
   return (
     <article className="content-card">
+      {onConfigure && (
+        <button
+          className="icon-button content-menu"
+          aria-label={`Configurar ${content.title}`}
+          onClick={onConfigure}
+        >
+          <Icon name="more" />
+        </button>
+      )}
       <button className="content-open" onClick={onOpen}>
         <span className={`content-label ${content.kind}`}>
           <Icon name={content.kind} />

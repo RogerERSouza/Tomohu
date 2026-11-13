@@ -2133,3 +2133,76 @@ legend {
   margin-bottom: 16px;
   overflow-wrap: anywhere;
 }
+
+.privacy-panel {
+  display: grid;
+  gap: 16px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid #52617b;
+}
+.private-preview {
+  filter: blur(5px);
+  opacity: 0.3;
+  font-size: 24px;
+}
+.private-lock {
+  position: absolute;
+  top: 30%;
+  font-size: 28px;
+}
+.modal.modal-compact {
+  width: min(360px, calc(100vw - 32px));
+}
+.privacy-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.privacy-option input {
+  width: auto;
+  flex: 0 0 auto;
+  accent-color: #a7bcec;
+}
+.privacy-option small {
+  width: 100%;
+}
+.content-menu {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 2;
+}
+.content-card {
+  position: relative;
+}
+.content-card:has(.content-menu) h3 {
+  padding-right: 28px;
+}
+.locked-item {
+  min-height: 140px;
+}
+.locked-open {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 140px;
+  padding: 20px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.locked-item .private-lock {
+  left: calc(50% - 14px);
+}
+.private-status {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+:root[data-theme='light'] .locked-item {
+  background: #ece7dc;
+}

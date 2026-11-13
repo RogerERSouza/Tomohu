@@ -5,9 +5,14 @@ import type { ContentKind } from '../../types'
 
 export function ContentForm({
   onSave,
+  privacyState,
 }: {
-  onSave: (kind: ContentKind, title: string) => void
+  onSave: (kind: ContentKind, title: string, makePrivate?: boolean) => void
+  privacyState?: 'public' | 'private' | 'inherited'
 }) {
+  const [makePrivate, setMakePrivate] = useState(
+    privacyState === 'private' || privacyState === 'inherited',
+  )
   const [title, setTitle] = useState('')
   const [hasTriedToSave, setHasTriedToSave] = useState(false)
   const [kind, setKind] = useState<ContentKind>('note')
@@ -19,7 +24,7 @@ export function ContentForm({
         event.preventDefault()
         setHasTriedToSave(true)
         if (!title.trim()) return
-        onSave(kind, title.trim())
+        onSave(kind, title.trim(), makePrivate)
       }}
     >
       <label className="field">
@@ -60,6 +65,20 @@ export function ContentForm({
           ))}
         </div>
       </fieldset>
+      {privacyState && (
+        <label className="privacy-option">
+          <input
+            type="checkbox"
+            checked={makePrivate}
+            disabled={privacyState === 'inherited'}
+            onChange={(e) => setMakePrivate(e.target.checked)}
+          />
+          Conteúdo privado
+          {privacyState === 'inherited' && (
+            <small>Protegido pela seção principal.</small>
+          )}
+        </label>
+      )}
       <button className="primary-button" type="submit">
         Criar e abrir
       </button>

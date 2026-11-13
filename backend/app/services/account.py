@@ -82,7 +82,9 @@ class AccountService:
             id=str(uuid4()),
             user_id=user.id,
             purpose=purpose,
-            credential_version=user.credential_version,
+            credential_version=user.privacy_version
+            if purpose == "private"
+            else user.credential_version,
             created_at=now,
             expires_at=now + timedelta(minutes=30),
             next_attempt_at=now,
@@ -121,13 +123,20 @@ class AccountService:
                 token_id,
                 sha256(provided).hexdigest(),
                 purpose,
-                user.credential_version,
+                user.privacy_version
+                if purpose == "private"
+                else user.credential_version,
                 now,
             )
         ):
             raise InvalidAccountAction()
         if purpose == "verify":
             user.email_verified = True
+        elif purpose == "private":
+            if password is None or not user.email_verified or not user.privacy_hash:
+                raise InvalidAccountAction()
+            user.privacy_hash = password_hash.hash(password)
+            user.privacy_version += 1
         else:
             if password is None:
                 raise InvalidAccountAction()

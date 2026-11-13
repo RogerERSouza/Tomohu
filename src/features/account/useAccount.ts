@@ -195,6 +195,9 @@ export function useAccount() {
     perform: run,
     authenticate,
     open,
+    acceptRemote: (remote: RemoteNotebook) => {
+      if (session?.token) setWorkspace({ ownerId: session.user.id, remote })
+    },
     refresh,
     refreshUser,
     create,

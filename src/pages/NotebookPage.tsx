@@ -1,15 +1,17 @@
+import type { PrivateCell } from '../features/privacy/PrivateCards'
 import { Icon } from '../components/Icon'
 import { ReminderStrip } from '../features/reminders/ReminderStrip'
 import { CollectionToolbar } from '../features/sections/CollectionToolbar'
 import type { Collection } from '../features/sections/selectCollection'
 import type { CollectionControls } from '../features/sections/useCollectionControls'
 import type { NotebookActions } from '../features/notebook/createNotebookActions'
-import type { Notebook, Reminder, Section } from '../types'
+import type { Notebook, Reminder, Section, Content } from '../types'
 import type { HourFormat } from '../lib/time'
 import { CollectionResults } from './CollectionResults'
 
 export function NotebookPage({
   notebook,
+  privateCells = [],
   currentSection,
   isHome,
   now,
@@ -19,6 +21,7 @@ export function NotebookPage({
   actions,
   openSection,
   onEditSection,
+  onEditContent,
   onOpenContent,
   onOpenReminder,
   onCreateReminder,
@@ -26,6 +29,7 @@ export function NotebookPage({
   onCreateContent,
 }: {
   notebook: Notebook
+  privateCells?: PrivateCell[]
   currentSection: Section | undefined
   isHome: boolean
   now: Date
@@ -35,6 +39,7 @@ export function NotebookPage({
   actions: NotebookActions
   openSection: (id?: string) => void
   onEditSection: (section: Section) => void
+  onEditContent?: (content: Content) => void
   onOpenContent: (id: string) => void
   onOpenReminder: (reminder: Reminder) => void
   onCreateReminder: () => void
@@ -85,7 +90,9 @@ export function NotebookPage({
             <span className="section-count">
               {isGlobalSearchActive
                 ? globalSearchResults.length
-                : visibleSections.length + visibleContents.length}
+                : visibleSections.length +
+                  visibleContents.length +
+                  privateCells.length}
             </span>
           </h2>
         </div>
@@ -98,10 +105,12 @@ export function NotebookPage({
         />
         <CollectionResults
           notebook={notebook}
+          privateCells={privateCells}
           collection={collection}
           actions={actions}
           openSection={openSection}
           onEditSection={onEditSection}
+          onEditContent={onEditContent}
           onOpenContent={onOpenContent}
           onOpenReminder={onOpenReminder}
         />

@@ -114,3 +114,7 @@ As regras obrigatórias para alterações ficam em [AGENTS.md](AGENTS.md).
 `0.21.0` adds email verification, password recovery/change and revocable sessions. Account workspaces and explicit synchronization from 0.20 remain unchanged. GitHub Pages publishes only the frontend. Set the repository variable `TOMOHU_API_BASE_URL` to a deployed HTTPS API origin to enable accounts there; leaving it empty preserves local mode. See the [0.21 release and Windows validation guide](docs/versions/0.21.0.md) and [ADR 0003](docs/architecture/0003-account-workspaces-and-explicit-sync.md).
 
 Commits futuros: `feat: add ...`, `fix: correct ...`, `refactor: extract ...`. Uma versão pode reunir vários commits.
+
+## 0.22.0 privacy
+
+Account owners can configure an independent privacy password after verifying their email. Protected section trees and individual content live outside public notebook snapshots and require a short-lived unlock grant. Choose locked cards in the original location or a dedicated area. Private items open in the normal notebook screens after a compact password prompt. Private edits save automatically to the account; private exports are readable JSON. This is application access control, not end-to-end encryption, and older public copies cannot be recalled. See [the validation guide](docs/versions/0.22.0.md) and [ADR 0005](docs/architecture/0005-private-aggregates.md).

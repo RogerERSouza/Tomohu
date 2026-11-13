@@ -32,3 +32,7 @@ class AuthRateLimiter:
             if len(attempts) >= limit:
                 raise RateLimitExceeded()
             attempts.append(now)
+
+    def clear(self, key: str) -> None:
+        with self._lock:
+            self._attempts.pop(key, None)

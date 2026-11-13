@@ -1,5 +1,6 @@
 """Run browser/account integration against an isolated real API database."""
 
+import argparse
 import os
 import shutil
 import socket
@@ -39,6 +40,16 @@ def stop_server(server: subprocess.Popen, *, windows: bool = os.name == "nt") ->
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run isolated live browser integration tests"
+    )
+    parser.add_argument("--suite", choices=("accounts", "privacy"), default="accounts")
+    args = parser.parse_args()
+    spec = (
+        "tests/e2e/accountsLive.spec.ts"
+        if args.suite == "accounts"
+        else "tests/e2e/privacyLive.spec.ts"
+    )
     with socket.socket() as probe:
         if probe.connect_ex(("127.0.0.1", 8000)) == 0:
             raise SystemExit(
@@ -114,7 +125,7 @@ def main() -> None:
             if not npm:
                 raise RuntimeError("npm is required for browser integration tests.")
             subprocess.run(
-                [npm, "run", "test:e2e", "--", "tests/e2e/accountsLive.spec.ts"],
+                [npm, "run", "test:e2e", "--", spec],
                 cwd=ROOT,
                 env=env,
                 check=True,
