@@ -32,12 +32,14 @@ export function NotebookView({
   beforeSectionNavigate,
   privateCells,
   initialEditor = null,
+  importDisabledReason = '',
 }: {
   controller: ReturnType<typeof useNotebook>
   accountPanel: ReactNode
   status?: ReactNode
   interactionBlocked?: boolean
   onExport?: () => void
+  importDisabledReason?: string
   initialEditor?: Editor
   privateCells?: (parentId: string | null) => PrivateCell[]
   privacy?: ItemPrivacyControls
@@ -64,9 +66,10 @@ export function NotebookView({
     importError,
     chooseBackup,
     exportNotebook: downloadBackup,
-  } = useBackupFiles(notebook, (backup, fileName) =>
-    setEditor({ kind: 'import-backup', backup, fileName }),
-  )
+  } = useBackupFiles(notebook, (backup, fileName) => {
+    if (!importDisabledReason)
+      setEditor({ kind: 'import-backup', backup, fileName })
+  })
   const exportNotebook = onExport ?? downloadBackup
   function openSection(id?: string) {
     if (beforeSectionNavigate && !beforeSectionNavigate(id)) return
@@ -136,6 +139,7 @@ export function NotebookView({
         )}
       </main>
       <BottomNavigation
+        disabled={interactionBlocked}
         isHome={isHome}
         settingsOpen={editor?.kind === 'settings'}
         onHome={() => {
@@ -155,7 +159,9 @@ export function NotebookView({
         <EditorDialog
           editor={editor}
           privacy={privacy}
-          importBlocked={interactionBlocked}
+          importBlocked={interactionBlocked || Boolean(importDisabledReason)}
+          importDisabledReason={importDisabledReason}
+          busy={interactionBlocked}
           setEditor={setEditor}
           currentSection={currentSection}
           preferences={preferences}

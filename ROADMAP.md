@@ -158,3 +158,5 @@ Toda função nova deve ser analisada pelo ponto de vista de quem está usando o
 - [x] `0.21.0` transaction boundary fix — Commit API transactions before sending responses; cover session visibility at the ASGI response boundary.
 
 - [x] `0.22.0` privacy interaction reformulation — Per-item privacy controls during creation/editing, compact password prompt, original-location navigation and automatic private saves.
+
+- [x] `0.22.1` — Fix private restore races, metadata recovery, empty content titles and private import affordances without changing stored formats.

@@ -21,7 +21,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     active_settings = settings or get_settings()
     app = FastAPI(
         title=active_settings.app_name,
-        version="0.22.0",
+        version="0.22.1",
         description="Tomohu API.",
     )
     app.state.auth_limiter = AuthRateLimiter()

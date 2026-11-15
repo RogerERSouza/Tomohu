@@ -1,3 +1,4 @@
+import { PrivateItemsStatus } from '../features/privacy/PrivateItemsStatus'
 import { useEffect, useRef, useState } from 'react'
 import { AccountAction } from '../features/account/AccountAction'
 import { readAccountLink } from '../features/account/accountLink'
@@ -77,6 +78,7 @@ function ConnectedWorkspace({
         privacy={privacy}
         document={privacy.opened}
         publicBook={sync.notebook}
+        operationBusy={account.busy || sync.busy}
         accountPanel={
           <>
             <PrivacyPanel
@@ -86,7 +88,7 @@ function ConnectedWorkspace({
             <AccountPanel
               account={account}
               notebook={sync.notebook}
-              canSwitch={!privacy.hasDraft}
+              privateDraft={privacy.hasDraft}
             />
           </>
         }
@@ -112,13 +114,16 @@ function ConnectedWorkspace({
         onExport={backup.exportNotebook}
         interactionBlocked={sync.busy || account.busy || privacy.busy}
         status={
-          <p className="workspace-status" role="status">
-            Caderno da conta ·{' '}
-            {sync.dirty
-              ? 'alterações locais pendentes'
-              : 'última versão carregada'}
-            {!account.session?.token ? ' · sessão encerrada' : ''}
-          </p>
+          <>
+            <PrivateItemsStatus privacy={privacy} />
+            <p className="workspace-status" role="status">
+              Caderno da conta ·{' '}
+              {sync.dirty
+                ? 'alterações locais pendentes'
+                : 'última versão carregada'}
+              {!account.session?.token ? ' · sessão encerrada' : ''}
+            </p>
+          </>
         }
         accountPanel={
           <fieldset
@@ -137,6 +142,7 @@ function ConnectedWorkspace({
             <AccountPanel
               account={account}
               notebook={sync.notebook}
+              privateDraft={privacy.hasDraft}
               canSwitch={
                 !sync.storageError || !sync.dirty || backup.hasExported
               }

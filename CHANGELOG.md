@@ -2,6 +2,16 @@
 
 - Fix a transaction race: commit API changes before sending successful responses, so newly issued sessions are immediately usable.
 
+## 0.22.1
+
+- Defer private autosaves for incomplete inline titles and preserve recovery access while blocking workspace changes with pending private drafts.
+
+- Block dialog edits, dismissal and navigation during account/privacy operations to prevent lost changes during public restoration.
+- Apply a committed public restoration before refreshing private metadata; retain the last successful private list and expose errors with an explicit retry.
+- Normalize empty content settings titles to the existing “Sem título” fallback before saving.
+- Disable private backup imports with contextual guidance while preserving public/guest import support.
+- Add regression coverage for all five review findings and stale metadata responses across account workspaces. Existing migrations and stored formats are unchanged.
+
 ## 0.22.0
 
 - Reformulate privacy around creation forms and per-item menus: compact password prompts open the normal section/content screens, with automatic private saves and draft recovery.

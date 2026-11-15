@@ -18,7 +18,7 @@ export function ContentSettings({
       className="modal-form"
       onSubmit={(e) => {
         e.preventDefault()
-        onSave(title.trim(), makePrivate)
+        onSave(title.trim() || 'Sem título', makePrivate)
       }}
     >
       <label className="field">

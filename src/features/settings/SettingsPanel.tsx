@@ -14,6 +14,7 @@ export function SettingsPanel({
   importError,
   accountPanel,
   importBlocked = false,
+  importDisabledReason = '',
 }: {
   theme: Theme
   setTheme: (theme: Theme) => void
@@ -23,6 +24,7 @@ export function SettingsPanel({
   onImport: () => void
   importError: string
   importBlocked?: boolean
+  importDisabledReason?: string
   accountPanel?: ReactNode
 }) {
   return (
@@ -98,7 +100,8 @@ export function SettingsPanel({
       </button>
       {importBlocked && (
         <p role="status">
-          Aguarde a operação da conta terminar antes de importar.
+          {importDisabledReason ||
+            'Aguarde a operação da conta terminar antes de importar.'}
         </p>
       )}
       {importError && (

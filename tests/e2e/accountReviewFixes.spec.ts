@@ -10,6 +10,7 @@ async function mockAccount(page: Page, logoutStatus: number) {
     const path = new URL(route.request().url()).pathname
     const reply = (value: unknown, status = 200) =>
       route.fulfill({ status, json: value })
+    if (path.startsWith('/api/v1/privacy/notebooks/')) return reply([])
     if (path.endsWith('/login'))
       return reply({
         access_token: 'review-token',
