@@ -88,7 +88,7 @@ function ConnectedWorkspace({
             <AccountPanel
               account={account}
               notebook={sync.notebook}
-              canSwitch={!privacy.hasDraft}
+              privateDraft={privacy.hasDraft}
             />
           </>
         }
@@ -142,6 +142,7 @@ function ConnectedWorkspace({
             <AccountPanel
               account={account}
               notebook={sync.notebook}
+              privateDraft={privacy.hasDraft}
               canSwitch={
                 !sync.storageError || !sync.dirty || backup.hasExported
               }

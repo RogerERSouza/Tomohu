@@ -31,6 +31,15 @@ export function usePrivateAutosave(
               !pending.dirty
             )
               return true
+            if (
+              pending.snapshot.contents.some((content) => !content.title.trim())
+            ) {
+              if (retry)
+                setError(
+                  'Preencha o título ou saia do campo para usar “Sem título” antes de salvar.',
+                )
+              return false
+            }
             const result = await persist(pending.snapshot, pending.revision)
             const latest = read()
             if (

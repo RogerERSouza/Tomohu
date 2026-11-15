@@ -14,11 +14,15 @@ export function AccountPanel({
   account,
   notebook,
   canSwitch = true,
+  privateDraft = false,
 }: {
   account: AccountController
   notebook: Notebook
   canSwitch?: boolean
+  privateDraft?: boolean
 }) {
+  const [authenticationError, setAuthenticationError] = useState('')
+  const canLeave = canSwitch && !privateDraft
   const [confirmation, setConfirmation] = useState(false)
   const [selected, setSelected] = useState('')
   if (!account.enabled)
@@ -31,6 +35,13 @@ export function AccountPanel({
   return (
     <section aria-label="Conta e cadernos" className="account-panel">
       <h3>Conta e cadernos</h3>
+      {privateDraft && (
+        <p role="alert">
+          Desbloqueie o item privado e salve ou exporte e descarte o rascunho
+          antes de sair ou trocar de caderno.
+        </p>
+      )}
+      {authenticationError && <p role="alert">{authenticationError}</p>}
       {!canSwitch && (
         <p role="alert">
           Exporte a cópia aberta antes de sair ou trocar de caderno: o
@@ -61,7 +72,7 @@ export function AccountPanel({
               aria-label="Caderno da conta"
               value={selected}
               onChange={(event) => setSelected(event.target.value)}
-              disabled={account.busy || !canSwitch}
+              disabled={account.busy || !canLeave}
             >
               <option value="">Escolher caderno</option>
               {account.items.map((item, index) => (
@@ -75,7 +86,7 @@ export function AccountPanel({
           <button
             type="button"
             className="secondary-button"
-            disabled={!selected || account.busy || !canSwitch}
+            disabled={!selected || account.busy || !canLeave}
             onClick={() => void account.open(selected)}
           >
             Abrir caderno da conta
@@ -83,7 +94,7 @@ export function AccountPanel({
           <button
             type="button"
             className="secondary-button"
-            disabled={account.busy || !canSwitch}
+            disabled={account.busy || !canLeave}
             onClick={() => void account.create(emptyNotebook)}
           >
             Criar caderno vazio
@@ -93,7 +104,7 @@ export function AccountPanel({
               type="checkbox"
               checked={confirmation}
               onChange={(event) => setConfirmation(event.target.checked)}
-              disabled={account.busy || !canSwitch}
+              disabled={account.busy || !canLeave}
             />
             Confirmo enviar uma cópia do caderno aberto para esta conta, sem
             apagar o original.
@@ -101,7 +112,7 @@ export function AccountPanel({
           <button
             type="button"
             className="secondary-button"
-            disabled={!confirmation || account.busy || !canSwitch}
+            disabled={!confirmation || account.busy || !canLeave}
             onClick={() => {
               setConfirmation(false)
               void account.create(notebook)
@@ -115,7 +126,21 @@ export function AccountPanel({
           busy={account.busy}
           canSwitch={canSwitch}
           expired={Boolean(account.session)}
-          onAuthenticate={account.authenticate}
+          onAuthenticate={async (email, password, register) => {
+            if (
+              privateDraft &&
+              (register ||
+                email.trim().toLowerCase() !==
+                  account.session?.user.email.toLowerCase())
+            ) {
+              setAuthenticationError(
+                'Entre na mesma conta para recuperar o rascunho privado antes de trocar de conta.',
+              )
+              return
+            }
+            setAuthenticationError('')
+            await account.authenticate(email, password, register)
+          }}
           onRequestReset={account.requestReset}
         />
       )}
@@ -132,7 +157,7 @@ export function AccountPanel({
         <button
           type="button"
           className="secondary-button"
-          disabled={account.busy || !canSwitch}
+          disabled={account.busy || !canLeave}
           onClick={account.logout}
         >
           Sair e voltar ao caderno local

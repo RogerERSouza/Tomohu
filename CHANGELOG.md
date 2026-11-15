@@ -4,6 +4,8 @@
 
 ## 0.22.1
 
+- Defer private autosaves for incomplete inline titles and preserve recovery access while blocking workspace changes with pending private drafts.
+
 - Block dialog edits, dismissal and navigation during account/privacy operations to prevent lost changes during public restoration.
 - Apply a committed public restoration before refreshing private metadata; retain the last successful private list and expose errors with an explicit retry.
 - Normalize empty content settings titles to the existing “Sem título” fallback before saving.
