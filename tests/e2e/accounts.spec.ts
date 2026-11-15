@@ -35,6 +35,7 @@ async function mockApi(page: Page) {
         json: value,
         headers: { 'Access-Control-Allow-Origin': '*' },
       })
+    if (path.startsWith('/api/v1/privacy/notebooks/')) return reply([])
     if (path === '/api/v1/auth/logout')
       return reply({ message: 'Session ended.' })
     if (path === '/api/v1/auth/register')

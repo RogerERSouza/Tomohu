@@ -5,7 +5,7 @@ import {
   createApiClient,
 } from '../../lib/api/client'
 import type { Notebook, Section } from '../../types'
-import type { PrivateSummary } from '../../lib/api/privacy'
+import { usePrivateItems } from './usePrivateItems'
 import type { AccountController } from '../account/useAccount'
 import type { PrivateCreation, PrivateDocument } from './privacyTypes'
 
@@ -26,8 +26,7 @@ export function usePrivacy(account: AccountController) {
   const book = account.workspace?.remote
   const identity = `${account.session?.user.id ?? ''}:${book?.id ?? ''}`
   const context = `${token}:${book?.id ?? ''}`
-  const [items, setItems] = useState<PrivateSummary[]>([])
-  const [loaded, setLoaded] = useState('')
+  const listing = usePrivateItems(origin, token, book?.id ?? '')
   const [document, setDocument] = useState<PrivateDocument | null>(null)
   const documentRef = useRef<PrivateDocument | null>(null)
   const [grant, setGrant] = useState<{
@@ -101,27 +100,6 @@ export function usePrivacy(account: AccountController) {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [document?.dirty])
-  useEffect(() => {
-    let active = true
-    if (token && book?.id)
-      void createApiClient(origin, token)
-        .privateItems(book.id)
-        .then((value) => {
-          if (active) {
-            setItems(value)
-            setLoaded(context)
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setItems([])
-            setLoaded(context)
-          }
-        })
-    return () => {
-      active = false
-    }
-  }, [token, book?.id, context])
   async function run(work: () => Promise<void>): Promise<boolean> {
     if (pending.current) return false
     pending.current = true
@@ -163,18 +141,7 @@ export function usePrivacy(account: AccountController) {
         'Desbloqueie o item para salvar o rascunho pendente antes de abrir outro.',
       )
   }
-  async function refresh(secret = '') {
-    if (!token || !book) return []
-    const value = await createApiClient(origin, token).privateItems(
-      book.id,
-      secret,
-    )
-    if (current.current === context) {
-      setItems(value)
-      setLoaded(context)
-    }
-    return value
-  }
+  const refresh = listing.refresh
   async function openWithGrant(id: string, secret: string, configure = false) {
     if (!token || !book) return
     const list = await refresh(secret)
@@ -300,11 +267,12 @@ export function usePrivacy(account: AccountController) {
         grant.token,
       )
       if (current.current !== context) return
+      account.acceptRemote(restored)
+      listing.forget(doc.item.id)
       write(null)
       setGrant(null)
-      await refresh()
-      account.acceptRemote(restored)
       window.location.hash = `${doc.item.kind}/${doc.item.root_id}`
+      void refresh().catch(() => undefined)
     })
   }
   async function reload() {
@@ -335,14 +303,20 @@ export function usePrivacy(account: AccountController) {
       if (current.current !== context) return
       write(null)
       setGrant(null)
-      await refresh()
+      listing.forget(doc.item.id)
+      void refresh().catch(() => undefined)
       window.location.hash = doc.item.parent_id
         ? `section/${doc.item.parent_id}`
         : ''
     })
   }
   return {
-    items: loaded === context ? items : [],
+    items: listing.items,
+    itemsError: listing.error,
+    itemsLoading: listing.loading,
+    retryItems: () => {
+      void refresh().catch(() => undefined)
+    },
     opened: unlocked && document?.identity === identity ? document : null,
     unlocked,
     busy,

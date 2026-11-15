@@ -3,12 +3,14 @@ import { Icon } from '../../components/Icon'
 export function ImportBackupPanel({
   fileName,
   blocked = false,
+  blockedReason = '',
   error = '',
   onExport,
   onBack,
   onReplace,
 }: {
   blocked?: boolean
+  blockedReason?: string
   error?: string
   fileName: string
   onExport: () => void
@@ -31,7 +33,8 @@ export function ImportBackupPanel({
       </button>
       {blocked && (
         <p role="status">
-          Aguarde a operação da conta terminar antes de importar.
+          {blockedReason ||
+            'Aguarde a operação da conta terminar antes de importar.'}
         </p>
       )}
       {error && (

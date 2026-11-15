@@ -27,12 +27,15 @@ export function PrivateNotebookSession({
   document,
   publicBook,
   accountPanel,
+  operationBusy,
 }: {
   privacy: PrivacyController
   document: PrivateDocument
   publicBook: Notebook
   accountPanel: React.ReactNode
+  operationBusy: boolean
 }) {
+  const blocked = privacy.busy || operationBusy
   const { registerFlush } = privacy
   const autosave = usePrivateAutosave(
     document,
@@ -67,7 +70,7 @@ export function PrivateNotebookSession({
   }, [hash, document.snapshot, document.item, privacy])
   const setNotebook: Dispatch<SetStateAction<Notebook>> = (change) => {
     const current = privacy.read()
-    if (!current) return
+    if (!current || blocked) return
     const currentView = privateView(publicBook, current.snapshot, current.item)
     const next = typeof change === 'function' ? change(currentView) : change
     const updated = privateEdit(current.snapshot, next, current.item)
@@ -144,7 +147,8 @@ export function PrivateNotebookSession({
           (cell) => cell.id !== document.item.id,
         )
       }
-      interactionBlocked={privacy.busy}
+      interactionBlocked={blocked}
+      importDisabledReason="Para importar uma cópia, volte ao caderno comum. A importação não substitui itens privados."
       onExport={backup.exportNotebook}
       status={
         <div className="private-status">

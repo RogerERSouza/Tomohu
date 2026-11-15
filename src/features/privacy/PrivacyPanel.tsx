@@ -1,3 +1,4 @@
+import { PrivateItemsStatus } from './PrivateItemsStatus'
 import { useState } from 'react'
 import { passwordHint, validNewPassword } from '../account/passwordPolicy'
 import type { PrivacyController } from './usePrivacy'
@@ -17,6 +18,7 @@ export function PrivacyPanel({
   return (
     <section className="privacy-panel" aria-label="Privacidade">
       <h3>Privacidade</h3>
+      <PrivateItemsStatus privacy={privacy} />
       {privacy.hasDraft && (
         <p role="status">
           Há alterações privadas pendentes. Aguarde o salvamento ou exporte uma
