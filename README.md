@@ -118,3 +118,7 @@ Commits futuros: `feat: add ...`, `fix: correct ...`, `refactor: extract ...`. U
 ## 0.22.0 privacy
 
 Account owners can configure an independent privacy password after verifying their email. Protected section trees and individual content live outside public notebook snapshots and require a short-lived unlock grant. Choose locked cards in the original location or a dedicated area. Private items open in the normal notebook screens after a compact password prompt. Private edits save automatically to the account; private exports are readable JSON. This is application access control, not end-to-end encryption, and older public copies cannot be recalled. See [the validation guide](docs/versions/0.22.0.md) and [ADR 0005](docs/architecture/0005-private-aggregates.md).
+
+## Development process
+
+Follow [the specification-driven workflow](docs/development/workflow.md) alongside [AGENTS.md](AGENTS.md). Significant features use [a compact specification template](docs/specs/_template.md) with acceptance scenarios, implementation tasks and recorded validation evidence. The [mandatory-account specification](docs/specs/mandatory-accounts.md) is a draft for the next authentication change, not an implemented feature.

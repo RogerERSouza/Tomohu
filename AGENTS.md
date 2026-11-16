@@ -79,3 +79,12 @@ Uma alteração só está pronta quando é legível, removível ou evoluível se
 - `src/lib`, `src/types.ts`, and `src/data` contain React-independent domain rules, contracts, and initial data. ESLint enforces dependency direction.
 - Run `npm run typecheck` and `npm run test:e2e` after the standard frontend checks. Install Chromium with `npx playwright install chromium` on first use.
 - Before another structural refactor, run the browser suite on the baseline and compare equivalent screenshots in the same browser environment. Preserve `task.notebook.v1`, schema version 1, preference keys, hash routes, and confirmation flows unless a separate migration is approved.
+
+## Specification-driven changes
+
+- Follow [the development workflow](docs/development/workflow.md) for new flows, storage/schema changes, security-sensitive work and changes across feature boundaries.
+- Start significant changes with a scoped specification in `docs/specs/`, using the template. Record the baseline, requirements, acceptance scenarios, material questions, plan and tasks before dependent implementation.
+- Keep project rules here, priorities in `ROADMAP.md`, feature behavior in its spec and architecture decisions in ADRs; link rather than duplicate them.
+- For critical rules and reproduced bugs, use a failing regression/acceptance test before implementation where practical. Do not weaken tests or silently change requirements to fit generated code.
+- Record actual evidence per acceptance criterion and distinguish planned, executed, delivered and merged work. A green existing suite is not evidence for a new behavior it does not exercise.
+- Scale the process: small copy/style changes need a concise expected result and appropriate verification, not a full specification. Documentation-only changes require formatting, links and content/diff review; runtime checks apply when runtime behavior or configuration changes.
