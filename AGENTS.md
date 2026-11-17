@@ -88,3 +88,11 @@ Uma alteração só está pronta quando é legível, removível ou evoluível se
 - For critical rules and reproduced bugs, use a failing regression/acceptance test before implementation where practical. Do not weaken tests or silently change requirements to fit generated code.
 - Record actual evidence per acceptance criterion and distinguish planned, executed, delivered and merged work. A green existing suite is not evidence for a new behavior it does not exercise.
 - Scale the process: small copy/style changes need a concise expected result and appropriate verification, not a full specification. Documentation-only changes require formatting, links and content/diff review; runtime checks apply when runtime behavior or configuration changes.
+
+## Public documentation and examples
+
+- Publish only project-relevant requirements, architecture, usage, setup and validation information. Keep personal details, private collaboration history and confidential operational information outside the repository.
+- Use generic paths and synthetic identities, addresses and sample data in documentation, tests, comments, logs and PR descriptions. Never include real credentials, tokens, account data, private screenshots, machine identifiers or private infrastructure details.
+- Keep real environment files, mail output and database backups untracked. Example configuration must contain only public defaults or unmistakable placeholders.
+- Review the complete diff for unintended information before delivery. Use accurate, general change titles without repeating unnecessary identifying details. A neutral title is not a security control and does not hide the diff.
+- If a real secret is discovered, report it without repeating its value and arrange revocation/rotation; deleting an example does not invalidate an exposed credential.
