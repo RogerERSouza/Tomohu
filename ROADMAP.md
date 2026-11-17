@@ -164,6 +164,6 @@ Toda função nova deve ser analisada pelo ponto de vista de quem está usando o
 ## Specification-driven development
 
 - [x] Establish a lightweight [development workflow](docs/development/workflow.md) and [feature template](docs/specs/_template.md), with explicit requirements, acceptance scenarios and validation evidence.
-- [ ] Implement [mandatory account access](docs/specs/mandatory-accounts.md) after resolving session continuity and legacy-data recovery decisions. Draft only; optional login still exists.
+- [ ] Implement [mandatory account access](docs/specs/mandatory-accounts.md) with renewable sessions, an automatic first notebook, explicit legacy-data copy and read-only outage access. Product behavior is agreed; session design and implementation remain pending. Optional login still exists.
 - [ ] Reorganize settings into focused destinations with back navigation, as a separate delivery.
 - [ ] Add manual card ordering only in Custom sort mode, with hold-to-drag, smooth placement feedback, cancellation, accessible alternatives and persisted order; specify before implementation.
