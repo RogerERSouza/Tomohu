@@ -35,10 +35,11 @@ async function openPrivate(
   })
   await page.route('http://127.0.0.1:8000/api/v1/**', async (route) => {
     const req = route.request()
-    const path = new URL(req.url()).pathname.replace('/api/v1', '')
+    let path = new URL(req.url()).pathname.replace('/api/v1', '')
+    if (path === '/auth/browser/bootstrap') path = '/notebooks/book'
     const reply = (json: unknown, status = 200) =>
       route.fulfill({ status, json })
-    if (path === '/auth/login')
+    if (path === '/auth/browser/login')
       return reply({
         access_token: 'token',
         expires_in: 900,
@@ -53,7 +54,7 @@ async function openPrivate(
     if (path === '/notebooks') return reply([{ id: 'book', revision: 1 }])
     if (path === '/notebooks/book') {
       bookRequests++
-      if (options.holdSwitch && bookRequests > 1) {
+      if (options.holdSwitch && bookRequests > 2) {
         switching = true
         await held
       }
@@ -113,10 +114,15 @@ async function openPrivate(
     }
     return reply({}, 404)
   })
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('E-mail', { exact: true }).fill('owner@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('Account123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page.getByLabel('Caderno da conta').selectOption('book')
   await page
@@ -219,6 +225,7 @@ test('failed private listing stays visible as an error and can be retried withou
     'Eles não foram apagados',
   )
   await page
+    .getByRole('main')
     .getByRole('button', {
       name: 'Tentar carregar itens privados novamente',
       exact: true,
@@ -255,7 +262,8 @@ test('private import is disabled with guidance and public import remains availab
   page,
 }) => {
   await openPrivate(page)
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(
     page.getByRole('button', { name: 'Importar cópia dos dados', exact: true }),
   ).toBeDisabled()
@@ -283,7 +291,8 @@ test('private import is disabled with guidance and public import remains availab
   await expect(
     page.getByRole('button', { name: 'Seção privada', exact: true }),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(
     page.getByRole('button', { name: 'Importar cópia dos dados', exact: true }),
   ).toBeEnabled()
@@ -293,7 +302,8 @@ test('account notebook requests also lock the private settings dialog until comp
   page,
 }) => {
   const server = await openPrivate(page, { holdSwitch: true })
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('Caderno da conta').selectOption('book')
   await page
     .getByRole('button', { name: 'Abrir caderno da conta', exact: true })

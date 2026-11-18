@@ -5,12 +5,32 @@ import type { RemoteNotebook } from '../../src/lib/api/client'
 const origin = 'http://127.0.0.1:8000'
 const password = 'Account test password 123!'
 async function settings(page: Page) {
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
 }
 async function login(page: Page, email = 'alice@example.com') {
+  await expect(
+    page.getByText('Verificando sua sessão…', { exact: true }),
+  ).toHaveCount(0)
+  if (!(await page.getByLabel('E-mail', { exact: true }).count())) {
+    if (
+      !(await page
+        .getByRole('dialog', { name: 'Ajustes', exact: true })
+        .count())
+    )
+      await settings(page)
+    await expect(
+      page.getByText('Conectado como', { exact: false }),
+    ).toBeVisible()
+    return
+  }
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
 }
 async function mockApi(page: Page) {
@@ -24,26 +44,57 @@ async function mockApi(page: Page) {
     books,
     loginStatus: 200,
     registerStatus: 201,
+    renewStatus: 200,
   }
   await page.route(`${origin}/api/v1/**`, async (route) => {
     const request = route.request()
-    const path = new URL(request.url()).pathname
-    const method = request.method()
+    let path = new URL(request.url()).pathname
+    const method = path.endsWith('/browser/bootstrap')
+      ? 'GET'
+      : request.method()
+    if (path.endsWith('/browser/bootstrap') && active !== 'bob')
+      path = '/api/v1/notebooks/book'
     const reply = (value: unknown, status = 200) =>
       route.fulfill({
         status,
         json: value,
-        headers: { 'Access-Control-Allow-Origin': '*' },
+        headers: {
+          'Access-Control-Allow-Origin': 'http://127.0.0.1:4173',
+          'Access-Control-Allow-Credentials': 'true',
+        },
       })
     if (path.startsWith('/api/v1/privacy/notebooks/')) return reply([])
-    if (path === '/api/v1/auth/logout')
+    if (path.endsWith('/browser/bootstrap'))
+      return reply({
+        id: 'bob-book',
+        revision: 1,
+        snapshot: {
+          schemaVersion: 1,
+          sections: [],
+          contents: [],
+          reminders: [],
+        },
+      })
+    if (path.endsWith('/browser/refresh'))
+      return reply(
+        {
+          access_token: `token-${active}`,
+          token_type: 'bearer',
+          expires_in: 900,
+        },
+        controls.renewStatus,
+      )
+    if (
+      path === '/api/v1/auth/browser/logout' ||
+      path === '/api/v1/auth/logout'
+    )
       return reply({ message: 'Session ended.' })
     if (path === '/api/v1/auth/register')
       return reply(
         { id: 'alice', email: 'alice@example.com' },
         controls.registerStatus,
       )
-    if (path === '/api/v1/auth/login') {
+    if (path === '/api/v1/auth/browser/login') {
       if (controls.loginStatus !== 200) return reply({}, controls.loginStatus)
       const body = request.postDataJSON()
       active = body.email.startsWith('bob') ? 'bob' : 'alice'
@@ -93,6 +144,9 @@ async function openBook(page: Page) {
     .getByRole('button', { name: 'Abrir caderno da conta', exact: true })
     .click()
   await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
+  await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toBeVisible()
 }
@@ -110,6 +164,9 @@ test('guest migration is explicit; sync, logout and account switching preserve i
   await page
     .getByRole('button', { name: 'Enviar cópia como novo caderno' })
     .click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toBeVisible()
@@ -130,20 +187,18 @@ test('guest migration is explicit; sync, logout and account switching preserve i
       storageKey,
     ),
   ).toEqual(fixture)
-  await page
-    .getByRole('button', { name: 'Sair e voltar ao caderno local' })
-    .click()
+  await page.getByRole('button', { name: 'Sair da conta' }).click()
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toHaveCount(0)
   await page.goto('/#content/note')
-  await expect(page.getByLabel('Sua nota')).toHaveValue('Texto pesquisável')
+  await expect(page.getByLabel('Sua nota')).toHaveCount(0)
   await settings(page)
   await login(page, 'bob@example.com')
   await expect(page.getByLabel('Caderno da conta')).toHaveValue('')
   expect(
     await page.getByLabel('Caderno da conta').locator('option').count(),
-  ).toBe(1)
+  ).toBe(2)
   const persistent = await page.evaluate(() =>
     JSON.stringify({ ...localStorage }),
   )
@@ -175,6 +230,12 @@ test('network retry and revision conflicts keep edits until an explicit remote r
       ),
     },
   }
+  await page
+    .getByRole('button', { name: 'Tentar reconectar', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: 'Sincronizar agora', exact: true }),
+  ).toBeEnabled()
   await page.getByRole('button', { name: 'Sincronizar agora' }).click()
   await expect(page.getByRole('alert')).toContainText('versão da conta mudou')
   await expect(
@@ -194,21 +255,22 @@ test('network retry and revision conflicts keep edits until an explicit remote r
   await expect(page.getByLabel('Sua nota')).toHaveValue('Remote edit')
 })
 
-test('expiry and reload require login without moving account data into the guest notebook', async ({
+test('rejected renewal and reload require login without moving account data into the guest notebook', async ({
   page,
 }) => {
-  await mockApi(page)
+  const api = await mockApi(page)
   await settings(page)
   await login(page)
   await openBook(page)
   await page.goto('/#content/note')
   await page.getByLabel('Sua nota').fill('Not uploaded')
+  api.renewStatus = 401
   await page.clock.fastForward(901000)
-  await settings(page)
-  await expect(page.getByText(/Sua sessão expirou/)).toBeVisible()
+  await expect(page.getByLabel('E-mail', { exact: true })).toBeVisible()
+  await expect(page.getByText(/Sua sessão foi encerrada/)).toBeVisible()
   await expect(
     page.getByRole('button', { name: 'Sincronizar agora' }),
-  ).toBeDisabled()
+  ).toHaveCount(0)
   await page.reload()
   await settings(page)
   await expect(
@@ -312,13 +374,13 @@ test('unavailable browser storage blocks switching until export and can recover 
   await page.getByLabel('Sua nota').fill('Preserve despite quota')
   await settings(page)
   await expect(
-    page.getByRole('button', { name: 'Sair e voltar ao caderno local' }),
+    page.getByRole('button', { name: 'Sair da conta' }),
   ).toBeDisabled()
   const downloaded = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Exportar cópia aberta' }).click()
   await downloaded
   await expect(
-    page.getByRole('button', { name: 'Sair e voltar ao caderno local' }),
+    page.getByRole('button', { name: 'Sair da conta' }),
   ).toBeEnabled()
   await page.evaluate(() => sessionStorage.setItem('quota-simulated', 'false'))
   await page.getByRole('button', { name: 'Sincronizar agora' }).click()
@@ -339,10 +401,13 @@ test('account and sync controls fit narrow dialogs in both themes', async ({
       await settings(page)
     }
     for (const theme of ['Escuro', 'Claro']) {
-      await page.getByRole('button', { name: theme, exact: true }).click()
+      if (connected)
+        await page.getByRole('button', { name: theme, exact: true }).click()
       for (const width of [320, 360, 760, 1280]) {
         await page.setViewportSize({ width, height: 780 })
-        const dialog = page.getByRole('dialog')
+        const dialog = connected
+          ? page.getByRole('dialog')
+          : page.locator('.auth-shell')
         await page
           .getByRole('heading', {
             name: connected ? 'Sincronização' : 'Conta e cadernos',
@@ -377,41 +442,22 @@ test('account and sync controls fit narrow dialogs in both themes', async ({
   }
 })
 
-test('guest storage failure requires a real backup before opening another workspace', async ({
+test('legacy storage write failures do not prevent login or overwrite the source', async ({
   page,
 }) => {
   await mockApi(page)
   await page.evaluate((key) => {
     const original = Storage.prototype.setItem
     Storage.prototype.setItem = function (name, value) {
-      if (name === key)
-        throw new DOMException('Storage full', 'QuotaExceededError')
-      return original.call(this, name, value)
+      if (name === key) throw new DOMException('Full', 'QuotaExceededError')
+      original.call(this, name, value)
     }
   }, storageKey)
-  await page.goto('/#content/note')
-  await page.getByLabel('Sua nota').fill('Unsaved guest recovery')
-  await settings(page)
-  await expect(
-    page.getByRole('button', { name: 'Entrar', exact: true }),
-  ).toBeDisabled()
-  const downloading = page.waitForEvent('download')
-  await page
-    .getByRole('button', { name: 'Exportar cópia dos dados', exact: true })
-    .click()
-  const download = await downloading
-  const stream = await download.createReadStream()
-  if (!stream) throw new Error('Backup stream unavailable')
-  let text = ''
-  for await (const chunk of stream) text += chunk.toString()
-  expect(JSON.parse(text).contents[0]).toMatchObject({
-    text: 'Unsaved guest recovery',
-  })
   await login(page)
-  await openBook(page)
+  await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   expect(
     await page.evaluate(
-      (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
+      (key) => JSON.parse(localStorage.getItem(key)!),
       storageKey,
     ),
   ).toEqual(fixture)

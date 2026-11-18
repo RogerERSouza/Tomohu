@@ -17,10 +17,11 @@ async function openPrivate(page: Page, options: { failWrites?: boolean } = {}) {
   }
   await page.route('http://127.0.0.1:8000/api/v1/**', async (route) => {
     const req = route.request()
-    const path = new URL(req.url()).pathname.replace('/api/v1', '')
+    let path = new URL(req.url()).pathname.replace('/api/v1', '')
+    if (path === '/auth/browser/bootstrap') path = '/notebooks/book'
     const reply = (json: unknown, status = 200) =>
       route.fulfill({ status, json })
-    if (path === '/auth/login')
+    if (path === '/auth/browser/login')
       return reply({
         access_token: 'token',
         expires_in: 900,
@@ -63,10 +64,15 @@ async function openPrivate(page: Page, options: { failWrites?: boolean } = {}) {
     }
     return reply({}, 404)
   })
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('E-mail', { exact: true }).fill('owner@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('Account123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page.getByLabel('Caderno da conta').selectOption('book')
   await page
@@ -121,13 +127,14 @@ test('expired private access preserves the draft and blocks workspace changes', 
   ).toBeVisible()
   await page.clock.fastForward(300001)
   await expect(page.getByLabel('Sua nota')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(
     page.getByLabel('Caderno da conta', { exact: true }),
   ).toBeDisabled()
   await expect(
     page.getByRole('button', {
-      name: 'Sair e voltar ao caderno local',
+      name: 'Sair da conta',
       exact: true,
     }),
   ).toBeDisabled()
@@ -144,6 +151,10 @@ test('expired private access preserves the draft and blocks workspace changes', 
   await page.getByLabel('E-mail', { exact: true }).fill('owner@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('Owner123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await expect(
     page.getByLabel('Caderno da conta', { exact: true }),

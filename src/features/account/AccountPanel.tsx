@@ -22,7 +22,7 @@ export function AccountPanel({
   privateDraft?: boolean
 }) {
   const [authenticationError, setAuthenticationError] = useState('')
-  const canLeave = canSwitch && !privateDraft
+  const canLeave = canSwitch && !privateDraft && !account.offline
   const [confirmation, setConfirmation] = useState(false)
   const [selected, setSelected] = useState('')
   if (!account.enabled)
@@ -35,6 +35,15 @@ export function AccountPanel({
   return (
     <section aria-label="Conta e cadernos" className="account-panel">
       <h3>Conta e cadernos</h3>
+      {account.offline && (
+        <button
+          className="text-button"
+          disabled={account.busy}
+          onClick={() => void account.resume()}
+        >
+          Tentar reconectar
+        </button>
+      )}
       {privateDraft && (
         <p role="alert">
           Desbloqueie o item privado e salve ou exporte e descarte o rascunho
@@ -53,7 +62,9 @@ export function AccountPanel({
           <p>
             Conectado como <strong>{account.session.user.email}</strong>.
           </p>
-          <AccountSecurity account={account} />
+          <fieldset disabled={account.offline}>
+            <AccountSecurity account={account} />
+          </fieldset>
           <p className="muted">
             Abra um caderno ou crie outro. O caderno local não é enviado
             automaticamente.
@@ -61,7 +72,7 @@ export function AccountPanel({
           <button
             type="button"
             className="text-button"
-            disabled={account.busy}
+            disabled={account.busy || account.offline}
             onClick={() => void account.refresh()}
           >
             Atualizar lista de cadernos
@@ -157,10 +168,10 @@ export function AccountPanel({
         <button
           type="button"
           className="secondary-button"
-          disabled={account.busy || !canLeave}
+          disabled={account.busy || !canSwitch || privateDraft}
           onClick={account.logout}
         >
-          Sair e voltar ao caderno local
+          Sair da conta
         </button>
       )}
     </section>

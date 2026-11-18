@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { test, expect, fixture, storageKey } from './notebook.fixture'
 
-test('real API registration, guest copy and revision-checked sync persist across reauthentication', async ({
+test('real registration, explicit legacy copy and sync persist across browser renewal', async ({
   page,
 }) => {
   test.skip(
@@ -25,22 +25,31 @@ test('real API registration, guest copy and revision-checked sync persist across
   await page.reload()
   const email = `integration-${randomUUID()}@example.com`
   const password = 'Live account test password 123!'
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByRole('button', { name: 'Quero criar uma conta' }).click()
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Criar conta e entrar' }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
-  await page.getByLabel(/Confirmo enviar uma cópia/).check()
+  await page.getByLabel(/Confirmo copiar os dados anteriores/).check()
   await page
-    .getByRole('button', { name: 'Enviar cópia como novo caderno' })
+    .getByRole('button', { name: 'Copiar dados anteriores para a conta' })
     .click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toBeVisible()
   await page.goto('/#content/note')
   await page.getByLabel('Sua nota').fill('Persisted in the real API')
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByRole('button', { name: 'Sincronizar agora' }).click()
   await expect(
     page.getByText('Cópia local igual à última versão carregada ou enviada.'),
@@ -57,13 +66,16 @@ test('real API registration, guest copy and revision-checked sync persist across
       if (key.startsWith('tomohu.account.v1.')) localStorage.removeItem(key)
   })
   await page.reload()
+  await expect(
+    page.getByText('Caderno da conta ·', { exact: false }),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
-  await page.getByLabel('E-mail', { exact: true }).fill(email)
-  await page.getByLabel('Senha', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
-  await page.getByLabel('Caderno da conta').selectOption({ index: 1 })
+  await page.getByLabel('Caderno da conta').selectOption({ index: 2 })
   await page.getByRole('button', { name: 'Abrir caderno da conta' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toBeVisible()
@@ -120,16 +132,28 @@ test('real email verification, password reset and session revocation preserve a 
       .toBe(true)
     return link
   }
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByRole('button', { name: 'Quero criar uma conta' }).click()
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill(oldPassword)
   await page.getByRole('button', { name: 'Criar conta e entrar' }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
-  await page.getByRole('button', { name: 'Criar caderno vazio' }).click()
-  await expect(
-    page.getByText('Caderno da conta ·', { exact: false }),
-  ).toBeVisible()
+  // Registration already opened the first notebook; preserve that same notebook.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          Object.keys(localStorage).filter((key) =>
+            key.startsWith('tomohu.account.v1.'),
+          ).length,
+      ),
+    )
+    .toBe(1)
   const caches = await page.evaluate(() =>
     Object.fromEntries(
       Object.entries(localStorage).filter(([key]) =>
@@ -137,13 +161,18 @@ test('real email verification, password reset and session revocation preserve a 
       ),
     ),
   )
+  await page
+    .getByRole('dialog', { name: 'Ajustes', exact: true })
+    .getByRole('button', { name: 'Fechar', exact: true })
+    .click()
   const verification = await mailLink('verify')
   const tab = await page.context().newPage()
   await tab.goto(verification)
   await tab.getByRole('button', { name: 'Confirmar meu e-mail' }).click()
   await expect(tab.getByRole('status')).toContainText('E-mail confirmado')
   await tab.close()
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Segurança da conta', exact: true })
     .click()
@@ -154,7 +183,8 @@ test('real email verification, password reset and session revocation preserve a 
     page.getByText('E-mail verificado.', { exact: true }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Fechar', exact: true }).click()
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Segurança da conta', exact: true })
     .click()
@@ -165,13 +195,12 @@ test('real email verification, password reset and session revocation preserve a 
     .getByRole('button', { name: 'Atualizar sessões', exact: true })
     .click()
   await expect(page.getByText('Esta sessão ·', { exact: false })).toBeVisible()
-  await page
-    .getByRole('button', { name: 'Sair e voltar ao caderno local' })
-    .click()
+  await page.getByRole('button', { name: 'Sair da conta' }).click()
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toHaveCount(0)
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByRole('button', { name: 'Esqueci minha senha' }).click()
   await page.getByLabel('E-mail para recuperação').fill(email)
   await page.getByRole('button', { name: 'Enviar link de recuperação' }).click()
@@ -188,9 +217,16 @@ test('real email verification, password reset and session revocation preserve a 
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill('Ab123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page.getByLabel('Caderno da conta').selectOption({ index: 1 })
   await page.getByRole('button', { name: 'Abrir caderno da conta' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toBeVisible()
@@ -203,7 +239,8 @@ test('real email verification, password reset and session revocation preserve a 
       ),
     ),
   ).toEqual(caches)
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Segurança da conta', exact: true })
     .click()
@@ -219,6 +256,10 @@ test('real email verification, password reset and session revocation preserve a 
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill('Next123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page
     .getByRole('button', { name: 'Segurança da conta', exact: true })
@@ -230,6 +271,9 @@ test('real email verification, password reset and session revocation preserve a 
     page.getByText('Todas as sessões foram encerradas.', { exact: false }),
   ).toBeVisible()
   await expect(
+    page.getByRole('button', { name: 'Entrar', exact: true }),
+  ).toBeVisible()
+  await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
-  ).toContainText('sessão encerrada')
+  ).toHaveCount(0)
 })

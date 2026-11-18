@@ -4,11 +4,13 @@ import type { CollectionControls } from './useCollectionControls'
 
 export function CollectionToolbar({
   isHome,
+  readOnly = false,
   collection,
   controls,
   onCreateSection,
   onCreateContent,
 }: {
+  readOnly?: boolean
   isHome: boolean
   collection: Collection
   controls: CollectionControls
@@ -176,12 +178,20 @@ export function CollectionToolbar({
           )}
         </div>
       )}
-      <button className="primary-button" onClick={onCreateSection}>
+      <button
+        className="primary-button"
+        disabled={readOnly}
+        onClick={onCreateSection}
+      >
         <Icon name="plus" />
         <span>{isHome ? 'Nova seção' : 'Subseção'}</span>
       </button>
       {!isHome && (
-        <button className="secondary-button" onClick={onCreateContent}>
+        <button
+          className="secondary-button"
+          disabled={readOnly}
+          onClick={onCreateContent}
+        >
           <Icon name="plus" />
           Conteúdo
         </button>

@@ -48,8 +48,8 @@ export function CredentialsForm({
     >
       {expired && (
         <p role="status">
-          Sua sessão expirou. Entre novamente para sincronizar. A cópia local
-          desta conta foi preservada.
+          Sua sessão foi encerrada. Entre novamente para continuar. A cópia
+          local desta conta foi preservada.
         </p>
       )}
       <label className="field">
@@ -80,7 +80,7 @@ export function CredentialsForm({
       <p className="muted">
         {register
           ? passwordHint
-          : 'A sessão precisa ser renovada após expirar ou recarregar a página.'}
+          : 'Sua sessão é renovada automaticamente enquanto permanecer válida.'}
       </p>
       {validation && <p role="alert">{validation}</p>}
       {!register && (

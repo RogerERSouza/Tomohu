@@ -1,4 +1,4 @@
-import { test, expect, storageKey } from './notebook.fixture'
+import { test, expect, fixture, storageKey } from './notebook.fixture'
 
 const origin = 'http://127.0.0.1:8000'
 
@@ -16,7 +16,8 @@ test('recovery request is explicit and failed requests remain retryable', async 
       return route.fulfill({ status, json: { message: 'Requested' } })
     },
   )
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByRole('button', { name: 'Esqueci minha senha' }).click()
   await page.getByLabel('E-mail para recuperação').fill('person@example.com')
   await page.getByRole('button', { name: 'Enviar link de recuperação' }).click()
@@ -76,7 +77,7 @@ for (const purpose of ['verify', 'reset'])
     ).toBe(before)
     await page.getByRole('button', { name: 'Voltar ao caderno' }).click()
     await expect(
-      page.getByRole('button', { name: 'Ajustes', exact: true }),
+      page.getByRole('button', { name: 'Entrar', exact: true }),
     ).toBeVisible()
     expect(
       await page.evaluate(() =>
@@ -119,7 +120,8 @@ test('security controls validate password changes and revoke only the selected s
   ]
   let changed = 0
   await page.route(`${origin}/api/v1/**`, async (route) => {
-    const path = new URL(route.request().url()).pathname
+    let path = new URL(route.request().url()).pathname
+    if (path.endsWith('/browser/bootstrap')) path = '/api/v1/notebooks/book'
     const reply = (value: unknown) => route.fulfill({ json: value })
     if (path.endsWith('/login'))
       return reply({
@@ -133,6 +135,10 @@ test('security controls validate password changes and revoke only the selected s
         email: 'alice@example.com',
         email_verified: false,
       })
+    if (path.startsWith('/api/v1/privacy/notebooks/')) return reply([])
+    if (path.endsWith('/notebooks/book'))
+      return reply({ id: 'book', revision: 1, snapshot: fixture })
+    if (path.startsWith('/api/v1/privacy/notebooks/')) return reply([])
     if (path.endsWith('/notebooks')) return reply([])
     if (path.endsWith('/sessions')) return reply(sessions)
     if (path.endsWith('/sessions/other')) {
@@ -150,10 +156,12 @@ test('security controls validate password changes and revoke only the selected s
     }
     return route.fulfill({ status: 404, json: {} })
   })
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('E-mail', { exact: true }).fill('alice@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('Legacy password')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Segurança da conta', exact: true })
     .click()
@@ -215,6 +223,7 @@ test('reset dialog preserves input on blank-space clicks and announces confirmed
   const dialog = page.getByRole('dialog', { name: 'Criar nova senha' })
   await page.getByLabel('Nova senha', { exact: true }).fill('Ab123')
   await page.getByLabel('Confirmar nova senha').fill('Ab123')
+  await page.clock.runFor(300)
   const bounds = await dialog.boundingBox()
   if (!bounds) throw new Error('Missing reset dialog')
   await page.mouse.click(bounds.x + 2, bounds.y + 30)
@@ -256,15 +265,18 @@ test('reset dialog preserves input on blank-space clicks and announces confirmed
   ).toBeVisible()
 })
 
-test('ordinary dialogs distinguish internal padding from the outside backdrop', async ({
+test('account dialogs preserve input when internal padding is clicked', async ({
   page,
 }) => {
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Ajustes' })
+  await page.goto('/#account/reset/opaque.secret')
+  const dialog = page.getByRole('dialog', { name: 'Criar nova senha' })
+  await page.getByLabel('Nova senha', { exact: true }).fill('Preserved123')
+  await page.clock.runFor(300)
   const bounds = await dialog.boundingBox()
-  if (!bounds) throw new Error('Missing settings dialog')
+  if (!bounds) throw new Error('Missing reset dialog')
   await page.mouse.click(bounds.x + 2, bounds.y + 30)
   await expect(dialog).toBeVisible()
-  await page.mouse.click(1, 1)
-  await expect(dialog).toHaveCount(0)
+  await expect(page.getByLabel('Nova senha', { exact: true })).toHaveValue(
+    'Preserved123',
+  )
 })

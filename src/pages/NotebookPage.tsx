@@ -11,6 +11,7 @@ import { CollectionResults } from './CollectionResults'
 
 export function NotebookPage({
   notebook,
+  readOnly = false,
   privateCells = [],
   currentSection,
   isHome,
@@ -28,6 +29,7 @@ export function NotebookPage({
   onCreateSection,
   onCreateContent,
 }: {
+  readOnly?: boolean
   notebook: Notebook
   privateCells?: PrivateCell[]
   currentSection: Section | undefined
@@ -60,6 +62,7 @@ export function NotebookPage({
             {currentSection?.emoji} {currentSection?.title}
           </h1>
           <button
+            disabled={readOnly}
             className="secondary-button"
             onClick={() => {
               if (currentSection) onEditSection(currentSection)
@@ -71,13 +74,15 @@ export function NotebookPage({
         </div>
       )}
       {isHome && (
-        <ReminderStrip
-          items={notebook.reminders}
-          now={now}
-          hourFormat={hourFormat}
-          onCreate={onCreateReminder}
-          onOpen={onOpenReminder}
-        />
+        <div inert={readOnly}>
+          <ReminderStrip
+            items={notebook.reminders}
+            now={now}
+            hourFormat={hourFormat}
+            onCreate={onCreateReminder}
+            onOpen={onOpenReminder}
+          />
+        </div>
       )}
       <section aria-labelledby="sections-title" className="sections-area">
         <div className="subheading">
@@ -97,6 +102,7 @@ export function NotebookPage({
           </h2>
         </div>
         <CollectionToolbar
+          readOnly={readOnly}
           isHome={isHome}
           collection={collection}
           controls={controls}
@@ -104,6 +110,7 @@ export function NotebookPage({
           onCreateContent={onCreateContent}
         />
         <CollectionResults
+          readOnly={readOnly}
           notebook={notebook}
           privateCells={privateCells}
           collection={collection}

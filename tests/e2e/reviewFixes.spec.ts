@@ -1,10 +1,16 @@
-import { test, expect, fixture, storageKey } from './notebook.fixture'
+import {
+  test,
+  expect,
+  fixture,
+  accountStorageKey as storageKey,
+} from './notebook.fixture'
 import type { Page } from '@playwright/test'
 import type { Notebook } from '../../src/types'
 
 const readNotebook = (page: Page) =>
   page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key) ?? 'null') as Notebook,
+    (key) =>
+      JSON.parse(localStorage.getItem(key) ?? 'null').snapshot as Notebook,
     storageKey,
   )
 
@@ -25,8 +31,16 @@ test('successful recovery resumes autosave before the next reload', async ({
   await page.reload()
   await expect(page.getByRole('alert')).toContainText('salvamento foi pausado')
   await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
-  await upload(page, fixture)
-  await page.getByRole('button', { name: 'Substituir dados' }).click()
+  const download = page.waitForEvent('download')
+  await page
+    .getByRole('button', { name: 'Exportar cache preservado', exact: true })
+    .click()
+  await download
+  await page.getByLabel(/Já exportei o que preciso/).check()
+  await page
+    .getByRole('button', { name: 'Carregar versão da conta', exact: true })
+    .click()
+  await page.getByRole('button', { name: 'Fechar', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveCount(0)
   await page.goto('/#content/note')
   await page.getByLabel('Sua nota').fill('Editado após recuperar o backup')

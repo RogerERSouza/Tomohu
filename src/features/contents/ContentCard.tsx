@@ -6,12 +6,14 @@ import { ListProgress } from './ListProgress'
 
 export function ContentCard({
   content,
+  readOnly = false,
   onOpen,
   onCount,
   onChange,
   onConfigure,
 }: {
   onConfigure?: () => void
+  readOnly?: boolean
   content: Content
   onOpen: () => void
   onCount: (delta: number) => void
@@ -38,7 +40,7 @@ export function ContentCard({
           }
         }}
       >
-        {onConfigure && (
+        {onConfigure && !readOnly && (
           <button
             className="icon-button content-menu"
             aria-label={`Configurar ${content.title}`}
@@ -104,6 +106,7 @@ export function ContentCard({
                     {content.kind === 'checklist' && (
                       <input
                         type="checkbox"
+                        disabled={readOnly}
                         aria-label={`Concluir ${item.text}`}
                         checked={item.completed}
                         onChange={() =>
@@ -138,7 +141,7 @@ export function ContentCard({
 
   return (
     <article className="content-card">
-      {onConfigure && (
+      {onConfigure && !readOnly && (
         <button
           className="icon-button content-menu"
           aria-label={`Configurar ${content.title}`}
@@ -168,7 +171,7 @@ export function ContentCard({
           <button
             className="icon-button"
             aria-label={`Diminuir ${content.title}`}
-            disabled={total === 0}
+            disabled={readOnly || total === 0}
             onClick={() => onCount(-1)}
           >
             −
@@ -177,6 +180,7 @@ export function ContentCard({
           <button
             className="icon-button"
             aria-label={`Aumentar ${content.title}`}
+            disabled={readOnly}
             onClick={() => onCount(1)}
           >
             +

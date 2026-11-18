@@ -1,11 +1,16 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { test, expect, fixture, storageKey } from './notebook.fixture'
+import {
+  test,
+  expect,
+  fixture,
+  accountStorageKey as storageKey,
+} from './notebook.fixture'
 import type { Notebook } from '../../src/types'
 import type { Page } from '@playwright/test'
 
 const readNotebook = (page: Page) =>
   page.evaluate(
-    (key) => JSON.parse(localStorage.getItem(key)!) as Notebook,
+    (key) => JSON.parse(localStorage.getItem(key)!).snapshot as Notebook,
     storageKey,
   )
 const openAlpha = async (page: Page) => {
@@ -455,7 +460,7 @@ test('failed browser writes show an export recovery action and preserve existing
   await page.evaluate(() => {
     const original = Storage.prototype.setItem
     Storage.prototype.setItem = function (key, value) {
-      if (key === 'task.notebook.v1')
+      if (key.startsWith('tomohu.account.v1.'))
         throw new DOMException('Full', 'QuotaExceededError')
       original.call(this, key, value)
     }

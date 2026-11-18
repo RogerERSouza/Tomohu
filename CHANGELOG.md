@@ -2,6 +2,13 @@
 
 - Fix a transaction race: commit API changes before sending successful responses, so newly issued sessions are immediately usable.
 
+## 0.23.0
+
+- Require account access before notebook editing, with a renewable/revocable browser session and one automatically bootstrapped first notebook.
+- Preserve existing local notebooks for export and explicit account copies without silent upload or deletion.
+- Add read-only consultation for loaded common notebooks during connection failures; protect private access and revalidate before resuming writes.
+- Add migration 06, session/rotation/bootstrap tests and updated browser coverage for authenticated notebook flows.
+
 ## 0.22.1
 
 - Defer private autosaves for incomplete inline titles and preserve recovery access while blocking workspace changes with pending private drafts.

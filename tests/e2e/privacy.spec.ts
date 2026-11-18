@@ -15,11 +15,12 @@ test('privacy password, hidden previews, private editing, display preference and
   let resets = 0
   await page.route(`${origin}/**`, async (route) => {
     const request = route.request()
-    const path = new URL(request.url()).pathname.replace('/api/v1', '')
+    let path = new URL(request.url()).pathname.replace('/api/v1', '')
+    if (path === '/auth/browser/bootstrap') path = '/notebooks/book'
     const method = request.method()
     const reply = (json: unknown, status = 200) =>
       route.fulfill({ status, json })
-    if (path === '/auth/login')
+    if (path === '/auth/browser/login')
       return reply({
         access_token: 'account-token',
         expires_in: 900,
@@ -95,10 +96,15 @@ test('privacy password, hidden previews, private editing, display preference and
     }
     return reply({}, 404)
   })
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('E-mail', { exact: true }).fill('owner@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('Account123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page
     .getByRole('button', { name: 'Configurar privacidade', exact: true })
@@ -119,6 +125,9 @@ test('privacy password, hidden previews, private editing, display preference and
   await page
     .getByRole('button', { name: 'Abrir caderno da conta', exact: true })
     .click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta · última versão carregada', {
       exact: true,
@@ -200,7 +209,8 @@ test('privacy password, hidden previews, private editing, display preference and
     .getByRole('dialog', { name: 'Senha de privacidade', exact: true })
     .getByRole('button', { name: 'Fechar', exact: true })
     .click()
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Configurar privacidade', exact: true })
     .click()
@@ -277,9 +287,10 @@ test('a newly created private content never passes through the public notebook',
   let rejectSave = false
   await page.route(`${origin}/**`, async (route) => {
     const request = route.request()
-    const path = new URL(request.url()).pathname.replace('/api/v1', '')
+    let path = new URL(request.url()).pathname.replace('/api/v1', '')
+    if (path === '/auth/browser/bootstrap') path = '/notebooks/book'
     const reply = (json: unknown) => route.fulfill({ json })
-    if (path === '/auth/login')
+    if (path === '/auth/browser/login')
       return reply({
         access_token: 'account-token',
         expires_in: 900,
@@ -293,7 +304,11 @@ test('a newly created private content never passes through the public notebook',
       })
     if (path === '/notebooks') return reply([{ id: 'book', revision: 1 }])
     if (path === '/notebooks/book') {
-      expect(request.method()).toBe('GET')
+      expect(request.method()).toBe(
+        new URL(request.url()).pathname.endsWith('/browser/bootstrap')
+          ? 'POST'
+          : 'GET',
+      )
       return reply({ id: 'book', revision: created ? 2 : 1, snapshot: fixture })
     }
     if (path === '/privacy/notebooks/book')
@@ -334,15 +349,23 @@ test('a newly created private content never passes through the public notebook',
     }
     return route.fulfill({ status: 404, json: {} })
   })
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('E-mail', { exact: true }).fill('owner@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('Account123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page.getByLabel('Caderno da conta').selectOption('book')
   await page
     .getByRole('button', { name: 'Abrir caderno da conta', exact: true })
     .click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta · última versão carregada', {
       exact: true,
