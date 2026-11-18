@@ -22,9 +22,9 @@ export function LegacyNotebookPanel({
       }
     }
   })
-  function currentRaw(): string | null {
+  function currentRaw(): { raw: string | null } | null {
     try {
-      return localStorage.getItem(STORAGE_KEY)
+      return { raw: localStorage.getItem(STORAGE_KEY) }
     } catch {
       setState({
         raw: state.raw,
@@ -34,11 +34,10 @@ export function LegacyNotebookPanel({
       return null
     }
   }
-  if (state.error) return <p role="alert">{state.error}</p>
-  if (!state.raw) return null
+  if (state.raw === null && !state.error) return null
   let parsed: Notebook | null = null
   try {
-    parsed = parseNotebookBackup(state.raw)
+    if (state.raw !== null) parsed = parseNotebookBackup(state.raw)
   } catch {
     /* Preserve the original bytes for export/repair. */
   }
@@ -46,20 +45,48 @@ export function LegacyNotebookPanel({
   return (
     <section className="modal-form" aria-label="Dados anteriores">
       <h3>Dados anteriores deste navegador</h3>
-      <p>
-        O caderno antigo foi preservado. Exporte uma cópia ou, após entrar,
-        copie para um novo caderno da conta.
-      </p>
-      <button
-        className="secondary-button"
-        onClick={() => {
-          const raw = currentRaw()
-          if (raw !== null) downloadJson(raw, 'tomohu-local-preserved.json')
-        }}
-      >
-        Exportar dados anteriores
-      </button>
-      {!snapshot && (
+      {state.error && (
+        <>
+          <p role="alert">{state.error}</p>
+          <button
+            className="text-button"
+            onClick={() => {
+              const current = currentRaw()
+              if (current) {
+                setConfirmed(false)
+                setState({ raw: current.raw, error: '' })
+              }
+            }}
+          >
+            Tentar ler dados anteriores novamente
+          </button>
+          {state.raw !== null && (
+            <p className="muted">
+              Se a leitura continuar indisponível, a exportação preserva a
+              última cópia lida nesta tela.
+            </p>
+          )}
+        </>
+      )}
+      {state.raw !== null && (
+        <>
+          <p>
+            O caderno antigo foi preservado. Exporte uma cópia ou, após entrar,
+            copie para um novo caderno da conta.
+          </p>
+          <button
+            className="secondary-button"
+            onClick={() => {
+              const current = currentRaw()
+              const raw = current ? current.raw : state.raw
+              if (raw !== null) downloadJson(raw, 'tomohu-local-preserved.json')
+            }}
+          >
+            Exportar dados anteriores
+          </button>
+        </>
+      )}
+      {state.raw !== null && !snapshot && (
         <p role="alert">
           Os dados antigos precisam de revisão. Exporte o original; nenhuma
           substituição foi feita.
@@ -82,9 +109,10 @@ export function LegacyNotebookPanel({
             disabled={!confirmed || busy}
             onClick={() => {
               setConfirmed(false)
-              const raw = currentRaw()
-              if (raw !== state.raw) {
-                setState({ raw, error: '' })
+              const current = currentRaw()
+              if (!current) return
+              if (current.raw !== state.raw) {
+                setState({ raw: current.raw, error: '' })
                 return
               }
               void onCopy(snapshot)

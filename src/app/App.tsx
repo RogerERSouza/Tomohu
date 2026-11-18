@@ -35,6 +35,14 @@ function ConnectedWorkspace({
 }) {
   const sync = useAccountNotebook(ownerId, remote, account.api, account.expire)
   const backup = useExportCheckpoint(sync.notebook)
+  if (!account.session?.token)
+    return (
+      <AuthenticationScreen
+        account={account}
+        privateDraft={privacy.hasDraft}
+        publicDraft={sync.dirty && Boolean(sync.storageError || sync.blocked)}
+      />
+    )
   if (privacy.opened)
     return (
       <PrivateNotebookSession
@@ -95,7 +103,6 @@ function ConnectedWorkspace({
               {sync.dirty
                 ? 'alterações locais pendentes'
                 : 'última versão carregada'}
-              {!account.session?.token ? ' · sessão encerrada' : ''}
             </p>
           </>
         }
@@ -155,18 +162,17 @@ export default function App() {
     window.addEventListener('hashchange', changed)
     return () => window.removeEventListener('hashchange', changed)
   }, [])
-  const workspace =
-    account.session?.token && account.workspace ? (
-      <ConnectedWorkspace
-        key={`${account.workspace.ownerId}:${account.workspace.remote.id}:${account.workspace.remote.revision}:${account.workspaceEpoch}`}
-        account={account}
-        privacy={privacy}
-        ownerId={account.workspace.ownerId}
-        remote={account.workspace.remote}
-      />
-    ) : (
-      <AuthenticationScreen account={account} privateDraft={privacy.hasDraft} />
-    )
+  const workspace = account.workspace ? (
+    <ConnectedWorkspace
+      key={`${account.workspace.ownerId}:${account.workspace.remote.id}:${account.workspace.remote.revision}:${account.workspaceEpoch}`}
+      account={account}
+      privacy={privacy}
+      ownerId={account.workspace.ownerId}
+      remote={account.workspace.remote}
+    />
+  ) : (
+    <AuthenticationScreen account={account} privateDraft={privacy.hasDraft} />
+  )
   return (
     <>
       {action && (

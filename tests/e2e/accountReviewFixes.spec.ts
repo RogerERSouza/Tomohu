@@ -88,18 +88,9 @@ for (const status of [0, 503, 401])
     await expect(
       page.getByText('Conectado como', { exact: false }),
     ).toHaveCount(0)
-    if (status !== 401) {
-      await expect(page.getByRole('status')).toContainText(
-        'Não foi possível confirmar o encerramento no servidor',
-      )
-    } else {
-      await expect(
-        page.getByText(
-          'Não foi possível confirmar o encerramento no servidor',
-          { exact: false },
-        ),
-      ).toHaveCount(0)
-    }
+    await expect(page.getByRole('status')).toContainText(
+      'Não foi possível confirmar o encerramento no servidor',
+    )
     expect(
       await page.evaluate(
         (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
@@ -168,4 +159,21 @@ test('refreshed verification survives reopening settings and an expired refresh 
   expect(
     await page.evaluate((key) => localStorage.getItem(key), accountKey),
   ).toContain('Pending verified account draft')
+})
+
+test('failed cookie logout and expired bearer leave an explicit remote-revocation warning', async ({
+  page,
+}) => {
+  await mockAccount(page, 401)
+  await page.route('**/api/v1/auth/browser/logout', (route) =>
+    route.abort('failed'),
+  )
+  await login(page)
+  await page.getByRole('button', { name: 'Sair da conta', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Entrar', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('status')).toContainText(
+    'Não foi possível confirmar o encerramento no servidor',
+  )
 })

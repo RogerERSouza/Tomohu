@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { test, expect, fixture, storageKey } from './notebook.fixture'
 import type { Page } from '@playwright/test'
 import type { RemoteNotebook } from '../../src/lib/api/client'
@@ -654,4 +655,139 @@ test('a preserved cache export can be restored with the normal backup importer',
   await expect(page.getByLabel('Sua nota')).toHaveValue(
     'Recoverable other-tab draft',
   )
+})
+
+test('unsaved public edits survive expiry, require the same account and recover after storage returns', async ({
+  page,
+}) => {
+  const api = await mockApi(page)
+  await login(page)
+  await openBook(page)
+  await page.goto('/#content/note')
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem
+    window.addEventListener(
+      'restore-account-storage',
+      () => {
+        Storage.prototype.setItem = original
+      },
+      { once: true },
+    )
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith('tomohu.account.v1.'))
+        throw new DOMException('Storage full', 'QuotaExceededError')
+      return original.call(this, key, value)
+    }
+  })
+  await page.getByLabel('Sua nota').fill('Unsaved draft must survive expiry')
+  await expect(page.getByRole('alert')).toContainText('Não foi possível salvar')
+  api.renewStatus = 401
+  await page.clock.fastForward(15 * 60 * 1000)
+  await expect(
+    page.getByRole('button', { name: 'Entrar', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByLabel('Sua nota')).toHaveCount(0)
+  expect(
+    await page.evaluate(() => {
+      const event = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    }),
+  ).toBe(true)
+  await page.getByLabel('E-mail', { exact: true }).fill('bob@example.com')
+  await page.getByLabel('Senha', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(
+    page.getByText(
+      'Entre na mesma conta para recuperar o rascunho pendente antes de trocar de conta.',
+      { exact: true },
+    ),
+  ).toBeVisible()
+  await login(page)
+  await expect(page.getByLabel('Caderno da conta')).toBeDisabled()
+  await page
+    .getByRole('dialog', { name: 'Ajustes', exact: true })
+    .getByRole('button', { name: 'Fechar', exact: true })
+    .click()
+  await page.goto('/#content/note')
+  await expect(page.getByLabel('Sua nota')).toHaveValue(
+    'Unsaved draft must survive expiry',
+  )
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event('restore-account-storage')),
+  )
+  await settings(page)
+  await page
+    .getByRole('button', { name: 'Sincronizar agora', exact: true })
+    .click()
+  await expect(
+    page.getByText('Cópia local igual à última versão carregada ou enviada.'),
+  ).toBeVisible()
+  expect(
+    api.books.book.snapshot.contents.find((content) => content.kind === 'note'),
+  ).toMatchObject({ text: 'Unsaved draft must survive expiry' })
+})
+
+test('legacy read failures preserve the last copy for export and allow explicit retry', async ({
+  page,
+}) => {
+  const api = await mockApi(page)
+  await login(page)
+  await page.evaluate(() => {
+    const get = Storage.prototype.getItem
+    window.addEventListener(
+      'restore-legacy-read',
+      () => {
+        Storage.prototype.getItem = get
+      },
+      { once: true },
+    )
+    Storage.prototype.getItem = function (key) {
+      if (key === 'task.notebook.v1')
+        throw new DOMException('Storage unavailable', 'SecurityError')
+      return get.call(this, key)
+    }
+  })
+  await page.getByLabel(/Confirmo copiar os dados anteriores/).check()
+  await page
+    .getByRole('button', {
+      name: 'Copiar dados anteriores para a conta',
+      exact: true,
+    })
+    .click()
+  const legacy = page.getByRole('region', {
+    name: 'Dados anteriores',
+    exact: true,
+  })
+  await expect(legacy.getByRole('alert').first()).toContainText(
+    'Não foi possível ler',
+  )
+  expect(api.created).toBe(0)
+  const downloaded = page.waitForEvent('download')
+  await legacy
+    .getByRole('button', { name: 'Exportar dados anteriores', exact: true })
+    .click()
+  const file = await (await downloaded).path()
+  if (!file) throw new Error('Missing preserved legacy download')
+  expect(await readFile(file, 'utf8')).toBe(JSON.stringify(fixture))
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event('restore-legacy-read')),
+  )
+  await legacy
+    .getByRole('button', {
+      name: 'Tentar ler dados anteriores novamente',
+      exact: true,
+    })
+    .click()
+  await expect(legacy.getByRole('alert')).toHaveCount(0)
+  await expect(legacy.getByRole('checkbox')).not.toBeChecked()
+  await legacy.getByRole('checkbox').check()
+  await legacy
+    .getByRole('button', {
+      name: 'Copiar dados anteriores para a conta',
+      exact: true,
+    })
+    .click()
+  await expect.poll(() => api.created).toBe(1)
+  expect(api.books['copy-1'].snapshot).toEqual(fixture)
 })

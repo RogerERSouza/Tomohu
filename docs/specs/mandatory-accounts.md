@@ -125,3 +125,13 @@ The implementation passed release-branch validation and is delivered as a patch.
 - [MDN third-party cookie constraints](https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies)
 
 Use these references when finalizing the session ADR and verify the chosen hosting arrangement in browser integration tests.
+
+## Review recovery addendum
+
+Baseline: `593937056cca5249a482b98165267e35e17297e6`. Scope: preserve an unsaved common-notebook draft during authentication rejection, report unconfirmed remote logout accurately, and retain legacy recovery after read failures. No storage/schema change or authentication bypass is introduced.
+
+- **AC11:** if browser writes fail and authentication expires, close protected UI while retaining its state in memory. Require the same account to recover an unpreserved draft, warn before closing the tab and keep workspace changes blocked until saving/export. Reauthentication must not recreate the controller from an older cache.
+- **AC12:** a failed cookie logout followed by bearer `401` does not prove remote revocation. Close local access and show the unconfirmed-logout warning.
+- **AC13:** a failed legacy re-read retains the previous raw bytes and an actionable error. Permit export of the last successfully read copy and retry; never upload an unconfirmed/stale copy or delete the source.
+
+Regression-first evidence: the added browser probes reproduced lost note text and a missing logout warning; the legacy component probe reproduced a missing error/panel before the corrections. Final validation is recorded in the review-fix release notes.

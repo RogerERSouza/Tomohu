@@ -4,6 +4,8 @@
 
 ## 0.23.0
 
+- Preserve unsaved account drafts through session rejection, report unconfirmed remote logout and keep legacy recovery available after browser read failures.
+
 - Require account access before notebook editing, with a renewable/revocable browser session and one automatically bootstrapped first notebook.
 - Preserve existing local notebooks for export and explicit account copies without silent upload or deletion.
 - Add read-only consultation for loaded common notebooks during connection failures; protect private access and revalidate before resuming writes.

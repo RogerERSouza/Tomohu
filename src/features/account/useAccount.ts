@@ -305,9 +305,8 @@ export function useAccount() {
         try {
           await api.logout()
           confirmed = true
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 401)
-            confirmed = true
+        } catch {
+          // An expired bearer says nothing about the renewable server session.
         }
       }
       if (!confirmed)

@@ -5,9 +5,11 @@ import type { AccountController } from './useAccount'
 export function AuthenticationScreen({
   account,
   privateDraft = false,
+  publicDraft = false,
 }: {
   account: AccountController
   privateDraft?: boolean
+  publicDraft?: boolean
 }) {
   return (
     <main className="auth-shell">
@@ -19,6 +21,7 @@ export function AuthenticationScreen({
         <AccountPanel
           account={account}
           privateDraft={privateDraft}
+          publicDraft={publicDraft}
           notebook={{
             schemaVersion: 1,
             sections: [],

@@ -231,16 +231,19 @@ test('reset dialog preserves input on blank-space clicks and announces confirmed
   await page.mouse.click(1, 1)
   await expect(dialog).toBeVisible()
   await expect(page.getByLabel('Confirmar nova senha')).toHaveValue('Ab123')
-  const confirmation = await page
-    .getByLabel('Confirmar nova senha')
-    .boundingBox()
-  const button = await page
-    .getByRole('button', { name: 'Redefinir senha' })
-    .boundingBox()
-  if (!confirmation || !button) throw new Error('Missing form controls')
-  expect(
-    button.y - confirmation.y - confirmation.height,
-  ).toBeGreaterThanOrEqual(12)
+  // Read both rectangles in one frame while the native dialog may still animate.
+  const gap = await dialog.evaluate((element) => {
+    const confirmation = element
+      .querySelectorAll('input[type="password"]')
+      .item(1)
+    const button = element.querySelector('button.primary-button')
+    if (!confirmation || !button) throw new Error('Missing form controls')
+    return (
+      button.getBoundingClientRect().top -
+      confirmation.getBoundingClientRect().bottom
+    )
+  })
+  expect(gap).toBeGreaterThanOrEqual(12)
   await page.getByRole('button', { name: 'Redefinir senha' }).click()
   await expect(page.getByRole('button', { name: 'Aguarde…' })).toBeDisabled()
   await expect(
