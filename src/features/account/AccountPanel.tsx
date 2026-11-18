@@ -15,14 +15,16 @@ export function AccountPanel({
   notebook,
   canSwitch = true,
   privateDraft = false,
+  publicDraft = false,
 }: {
   account: AccountController
   notebook: Notebook
   canSwitch?: boolean
   privateDraft?: boolean
+  publicDraft?: boolean
 }) {
   const [authenticationError, setAuthenticationError] = useState('')
-  const canLeave = canSwitch && !privateDraft
+  const canLeave = canSwitch && !privateDraft && !account.offline
   const [confirmation, setConfirmation] = useState(false)
   const [selected, setSelected] = useState('')
   if (!account.enabled)
@@ -35,10 +37,26 @@ export function AccountPanel({
   return (
     <section aria-label="Conta e cadernos" className="account-panel">
       <h3>Conta e cadernos</h3>
+      {account.offline && (
+        <button
+          className="text-button"
+          disabled={account.busy}
+          onClick={() => void account.resume()}
+        >
+          Tentar reconectar
+        </button>
+      )}
       {privateDraft && (
         <p role="alert">
           Desbloqueie o item privado e salve ou exporte e descarte o rascunho
           antes de sair ou trocar de caderno.
+        </p>
+      )}
+      {publicDraft && (
+        <p role="alert">
+          Há alterações desta conta mantidas apenas nesta aba. Entre na mesma
+          conta para salvar ou exportar o rascunho antes de trocar de conta. Não
+          feche nem recarregue esta página antes de recuperar a cópia.
         </p>
       )}
       {authenticationError && <p role="alert">{authenticationError}</p>}
@@ -53,7 +71,9 @@ export function AccountPanel({
           <p>
             Conectado como <strong>{account.session.user.email}</strong>.
           </p>
-          <AccountSecurity account={account} />
+          <fieldset disabled={account.offline}>
+            <AccountSecurity account={account} />
+          </fieldset>
           <p className="muted">
             Abra um caderno ou crie outro. O caderno local não é enviado
             automaticamente.
@@ -61,7 +81,7 @@ export function AccountPanel({
           <button
             type="button"
             className="text-button"
-            disabled={account.busy}
+            disabled={account.busy || account.offline}
             onClick={() => void account.refresh()}
           >
             Atualizar lista de cadernos
@@ -128,13 +148,15 @@ export function AccountPanel({
           expired={Boolean(account.session)}
           onAuthenticate={async (email, password, register) => {
             if (
-              privateDraft &&
+              (privateDraft || publicDraft) &&
               (register ||
                 email.trim().toLowerCase() !==
                   account.session?.user.email.toLowerCase())
             ) {
               setAuthenticationError(
-                'Entre na mesma conta para recuperar o rascunho privado antes de trocar de conta.',
+                privateDraft
+                  ? 'Entre na mesma conta para recuperar o rascunho privado antes de trocar de conta.'
+                  : 'Entre na mesma conta para recuperar o rascunho pendente antes de trocar de conta.',
               )
               return
             }
@@ -157,10 +179,10 @@ export function AccountPanel({
         <button
           type="button"
           className="secondary-button"
-          disabled={account.busy || !canLeave}
+          disabled={account.busy || !canSwitch || privateDraft || publicDraft}
           onClick={account.logout}
         >
-          Sair e voltar ao caderno local
+          Sair da conta
         </button>
       )}
     </section>

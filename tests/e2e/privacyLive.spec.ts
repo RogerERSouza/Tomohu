@@ -74,16 +74,22 @@ test('real privacy separation, private save, verified-email recovery and public 
   await page
     .getByRole('button', { name: 'Voltar ao caderno', exact: true })
     .click()
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
   await page.getByLabel('Caderno da conta').selectOption(book.id)
   await page
     .getByRole('button', { name: 'Abrir caderno da conta', exact: true })
     .click()
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Configurar privacidade', exact: true })
     .click()
@@ -160,7 +166,8 @@ test('real privacy separation, private save, verified-email recovery and public 
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
     'Saved only in the private aggregate',
   )
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await page
     .getByRole('button', { name: 'Configurar privacidade', exact: true })
     .click()

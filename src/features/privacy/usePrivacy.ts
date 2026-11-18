@@ -22,7 +22,7 @@ type Intent =
   | { kind: 'create'; payload: PrivateCreation }
 const origin = import.meta.env.VITE_API_BASE_URL ?? ''
 export function usePrivacy(account: AccountController) {
-  const token = account.session?.token ?? ''
+  const token = account.offline ? '' : (account.session?.token ?? '')
   const book = account.workspace?.remote
   const identity = `${account.session?.user.id ?? ''}:${book?.id ?? ''}`
   const context = `${token}:${book?.id ?? ''}`
@@ -110,6 +110,7 @@ export function usePrivacy(account: AccountController) {
       await work()
       return true
     } catch (e) {
+      if (e instanceof ApiError && e.status === 0) account.connectionLost()
       if (current.current !== context) return false
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         setGrant(null)
@@ -242,6 +243,7 @@ export function usePrivacy(account: AccountController) {
           grant.token,
         )
       } catch (e) {
+        if (e instanceof ApiError && e.status === 0) account.connectionLost()
         if (e instanceof ApiError && [401, 403].includes(e.status)) {
           setGrant(null)
           if (e.status === 401) account.expire()

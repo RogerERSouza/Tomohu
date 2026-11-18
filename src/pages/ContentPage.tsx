@@ -7,11 +7,13 @@ import type { NotebookActions } from '../features/notebook/createNotebookActions
 
 export function ContentPage({
   content,
+  readOnly = false,
   actions,
   hourFormat,
   openSection,
   onConfigure,
 }: {
+  readOnly?: boolean
   onConfigure?: () => void
   content: Content
   actions: NotebookActions
@@ -25,7 +27,7 @@ export function ContentPage({
           <span className="eyebrow">{CONTENT_LABELS[content.kind]}</span>
           <h1>{content.title || 'Sem título'}</h1>
         </div>
-        {onConfigure && (
+        {onConfigure && !readOnly && (
           <button
             className="icon-button"
             aria-label={`Configurar ${content.title || 'conteúdo'}`}
@@ -42,17 +44,19 @@ export function ContentPage({
           Voltar à seção
         </button>
       </div>
-      <ContentEditor
-        key={content.id}
-        content={content}
-        onChange={actions.updateContent}
-        onCount={(delta) => actions.changeCount(content.id, delta)}
-        onRemove={() => {
-          actions.deleteContent(content.id)
-          openSection(content.sectionId)
-        }}
-        hourFormat={hourFormat}
-      />
+      <fieldset disabled={readOnly}>
+        <ContentEditor
+          key={content.id}
+          content={content}
+          onChange={actions.updateContent}
+          onCount={(delta) => actions.changeCount(content.id, delta)}
+          onRemove={() => {
+            actions.deleteContent(content.id)
+            openSection(content.sectionId)
+          }}
+          hourFormat={hourFormat}
+        />
+      </fieldset>
     </>
   )
 }

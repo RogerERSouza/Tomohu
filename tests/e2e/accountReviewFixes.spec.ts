@@ -7,7 +7,8 @@ const accountKey = 'tomohu.account.v1.alice.book'
 async function mockAccount(page: Page, logoutStatus: number) {
   const controls = { verified: false, meStatus: 200 }
   await page.route(`${origin}/api/v1/**`, async (route) => {
-    const path = new URL(route.request().url()).pathname
+    let path = new URL(route.request().url()).pathname
+    if (path.endsWith('/browser/bootstrap')) path = '/api/v1/notebooks/book'
     const reply = (value: unknown, status = 200) =>
       route.fulfill({ status, json: value })
     if (path.startsWith('/api/v1/privacy/notebooks/')) return reply([])
@@ -38,12 +39,17 @@ async function mockAccount(page: Page, logoutStatus: number) {
   return controls
 }
 async function settings(page: Page) {
-  await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
+  if (await page.getByRole('button', { name: 'Ajustes', exact: true }).count())
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
 }
 async function login(page: Page) {
   await page.getByLabel('E-mail', { exact: true }).fill('alice@example.com')
   await page.getByLabel('Senha', { exact: true }).fill('ReviewPassword123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  if (
+    !(await page.getByRole('dialog', { name: 'Ajustes', exact: true }).count())
+  )
+    await page.getByRole('button', { name: 'Ajustes', exact: true }).click()
   await expect(page.getByText('Conectado como', { exact: false })).toBeVisible()
 }
 async function openBook(page: Page) {
@@ -51,6 +57,9 @@ async function openBook(page: Page) {
   await page
     .getByRole('button', { name: 'Abrir caderno da conta', exact: true })
     .click()
+  await expect(
+    page.getByRole('dialog', { name: 'Ajustes', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByText('Caderno da conta ·', { exact: false }),
   ).toBeVisible()
@@ -72,27 +81,16 @@ for (const status of [0, 503, 401])
     )
     expect(cached).toContain('Unsynced account draft')
     await settings(page)
-    await page
-      .getByRole('button', { name: 'Sair e voltar ao caderno local' })
-      .click()
+    await page.getByRole('button', { name: 'Sair da conta' }).click()
     await expect(
       page.getByText('Caderno da conta ·', { exact: false }),
     ).toHaveCount(0)
     await expect(
       page.getByText('Conectado como', { exact: false }),
     ).toHaveCount(0)
-    if (status !== 401) {
-      await expect(page.getByRole('status')).toContainText(
-        'Não foi possível confirmar o encerramento no servidor',
-      )
-    } else {
-      await expect(
-        page.getByText(
-          'Não foi possível confirmar o encerramento no servidor',
-          { exact: false },
-        ),
-      ).toHaveCount(0)
-    }
+    await expect(page.getByRole('status')).toContainText(
+      'Não foi possível confirmar o encerramento no servidor',
+    )
     expect(
       await page.evaluate(
         (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
@@ -103,7 +101,7 @@ for (const status of [0, 503, 401])
       await page.evaluate((key) => localStorage.getItem(key), accountKey),
     ).toBe(cached)
     await page.goto('/#content/note')
-    await expect(page.getByLabel('Sua nota')).toHaveValue('Texto pesquisável')
+    await expect(page.getByLabel('Sua nota')).toHaveCount(0)
     await settings(page)
     await login(page)
     await openBook(page)
@@ -157,11 +155,25 @@ test('refreshed verification survives reopening settings and an expired refresh 
   await expect(
     page.getByRole('button', { name: 'Entrar', exact: true }),
   ).toBeVisible()
+  await expect(page.getByLabel('Sua nota')).toHaveCount(0)
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key), accountKey),
+  ).toContain('Pending verified account draft')
+})
+
+test('failed cookie logout and expired bearer leave an explicit remote-revocation warning', async ({
+  page,
+}) => {
+  await mockAccount(page, 401)
+  await page.route('**/api/v1/auth/browser/logout', (route) =>
+    route.abort('failed'),
+  )
+  await login(page)
+  await page.getByRole('button', { name: 'Sair da conta', exact: true }).click()
   await expect(
-    page.getByText('Caderno da conta ·', { exact: false }),
-  ).toContainText('sessão encerrada')
-  await page.getByRole('button', { name: 'Fechar', exact: true }).click()
-  await expect(page.getByLabel('Sua nota')).toHaveValue(
-    'Pending verified account draft',
+    page.getByRole('button', { name: 'Entrar', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('status')).toContainText(
+    'Não foi possível confirmar o encerramento no servidor',
   )
 })

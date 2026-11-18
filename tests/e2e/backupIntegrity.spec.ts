@@ -1,4 +1,9 @@
-import { test, expect, fixture, storageKey } from './notebook.fixture'
+import {
+  test,
+  expect,
+  fixture,
+  accountStorageKey as storageKey,
+} from './notebook.fixture'
 import type { Notebook } from '../../src/types'
 
 test('inconsistent imports preserve current data and leave editing and deletion usable', async ({
@@ -51,7 +56,7 @@ test('inconsistent imports preserve current data and leave editing and deletion 
     await expect(page.getByRole('dialog')).toHaveAccessibleName('Ajustes')
     expect(
       await page.evaluate(
-        (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
+        (key) => JSON.parse(localStorage.getItem(key) ?? 'null').snapshot,
         storageKey,
       ),
     ).toEqual(fixture)
@@ -94,7 +99,7 @@ test('a reversed same-date continuous event is blocked and a corrected overnight
   await expect(page.getByRole('alert')).toContainText('término')
   expect(
     await page.evaluate(
-      (key) => JSON.parse(localStorage.getItem(key) ?? 'null'),
+      (key) => JSON.parse(localStorage.getItem(key) ?? 'null').snapshot,
       storageKey,
     ),
   ).toEqual(fixture)

@@ -2,7 +2,7 @@ import type { PrivateCell } from '../features/privacy/PrivateCards'
 import type { ItemPrivacyControls } from '../features/privacy/privacyTypes'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { useNotebook } from '../features/notebook/useNotebook'
+import type { NotebookController } from '../features/notebook/notebookTypes'
 import { useNow } from '../hooks/useNow'
 import { useCompactLayout } from '../hooks/useCompactLayout'
 import { createNotebookActions } from '../features/notebook/createNotebookActions'
@@ -27,6 +27,7 @@ export function NotebookView({
   accountPanel,
   status,
   interactionBlocked = false,
+  readOnly = false,
   onExport,
   privacy,
   beforeSectionNavigate,
@@ -34,10 +35,11 @@ export function NotebookView({
   initialEditor = null,
   importDisabledReason = '',
 }: {
-  controller: ReturnType<typeof useNotebook>
+  controller: NotebookController
   accountPanel: ReactNode
   status?: ReactNode
   interactionBlocked?: boolean
+  readOnly?: boolean
   onExport?: () => void
   importDisabledReason?: string
   initialEditor?: Editor
@@ -48,7 +50,9 @@ export function NotebookView({
   const { notebook, setNotebook, replaceNotebook, storageError } = controller
   const { currentContent, currentSection, isHome, isMissing, path } =
     useNotebookRoute(notebook)
-  const actions = createNotebookActions(setNotebook)
+  const actions = createNotebookActions((next) => {
+    if (!readOnly) setNotebook(next)
+  })
   const preferences = usePreferences()
   const controls = useCollectionControls()
   const now = useNow()
@@ -68,7 +72,7 @@ export function NotebookView({
     exportNotebook: downloadBackup,
   } = useBackupFiles(notebook, (backup, fileName) => {
     if (!importDisabledReason)
-      setEditor({ kind: 'import-backup', backup, fileName })
+      if (!readOnly) setEditor({ kind: 'import-backup', backup, fileName })
   })
   const exportNotebook = onExport ?? downloadBackup
   function openSection(id?: string) {
@@ -77,6 +81,7 @@ export function NotebookView({
     navigate(id ? 'section' : undefined, id)
   }
   function openReminder(reminder: Reminder) {
+    if (readOnly) return
     setEditor({
       kind: isReminderExpired(reminder, now) ? 'expired-reminder' : 'reminder',
       reminder,
@@ -106,6 +111,7 @@ export function NotebookView({
           <MissingPage onHome={() => openSection()} />
         ) : currentContent ? (
           <ContentPage
+            readOnly={readOnly}
             content={currentContent}
             onConfigure={() =>
               setEditor({ kind: 'content-settings', content: currentContent })
@@ -116,6 +122,7 @@ export function NotebookView({
           />
         ) : (
           <NotebookPage
+            readOnly={readOnly}
             notebook={notebook}
             privateCells={privateCells?.(currentSection?.id ?? null)}
             currentSection={currentSection}
@@ -155,18 +162,24 @@ export function NotebookView({
         accept="application/json,.json"
         onChange={chooseBackup}
       />
-      {editor && (
+      {editor && (!readOnly || editor.kind === 'settings') && (
         <EditorDialog
           editor={editor}
           privacy={privacy}
-          importBlocked={interactionBlocked || Boolean(importDisabledReason)}
-          importDisabledReason={importDisabledReason}
+          importBlocked={
+            readOnly || interactionBlocked || Boolean(importDisabledReason)
+          }
+          importDisabledReason={
+            readOnly
+              ? 'Sem conexão: importação indisponível no modo somente leitura.'
+              : importDisabledReason
+          }
           busy={interactionBlocked}
           setEditor={setEditor}
           currentSection={currentSection}
           preferences={preferences}
           actions={actions}
-          replaceNotebook={replaceNotebook}
+          replaceNotebook={(snapshot) => !readOnly && replaceNotebook(snapshot)}
           openSection={openSection}
           exportNotebook={exportNotebook}
           onImport={() => importInputRef.current?.click()}

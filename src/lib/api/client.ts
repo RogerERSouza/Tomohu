@@ -53,7 +53,29 @@ export function apiBaseUrl(value: string): string {
     throw new Error('Invalid API origin')
   return url.origin
 }
-export function createApiClient(origin: string, token = '') {
+function credentials(value: unknown) {
+  if (
+    !record(value) ||
+    typeof value.access_token !== 'string' ||
+    !value.access_token ||
+    value.token_type !== 'bearer' ||
+    typeof value.expires_in !== 'number' ||
+    !Number.isFinite(value.expires_in) ||
+    value.expires_in <= 0 ||
+    value.expires_in > 1800
+  )
+    throw new ApiError(502)
+  return {
+    token: value.access_token,
+    expiresAt: Date.now() + value.expires_in * 1000,
+  }
+}
+
+export function createApiClient(
+  origin: string,
+  token = '',
+  onUnavailable?: () => void,
+) {
   const base = apiBaseUrl(origin)
   async function request(
     path: string,
@@ -65,11 +87,14 @@ export function createApiClient(origin: string, token = '') {
     try {
       response = await fetch(`${base}/api/v1${path}`, {
         method,
-        credentials: 'omit',
+        credentials: path.startsWith('/auth/browser/') ? 'include' : 'omit',
         cache: 'no-store',
         redirect: 'error',
         signal: AbortSignal.timeout(15000),
         headers: {
+          ...(path.startsWith('/auth/browser/')
+            ? { 'X-Tomohu-Request': '1' }
+            : {}),
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(privacyToken ? { 'X-Privacy-Token': privacyToken } : {}),
@@ -77,6 +102,7 @@ export function createApiClient(origin: string, token = '') {
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       })
     } catch {
+      onUnavailable?.()
       throw new ApiError(0)
     }
     if (!response.ok) throw new ApiError(response.status)
@@ -138,21 +164,26 @@ export function createApiClient(origin: string, token = '') {
     },
     async login(email: string, password: string) {
       const value = await request('/auth/login', 'POST', { email, password })
-      if (
-        !record(value) ||
-        typeof value.access_token !== 'string' ||
-        !value.access_token ||
-        value.token_type !== 'bearer' ||
-        typeof value.expires_in !== 'number' ||
-        !Number.isFinite(value.expires_in) ||
-        value.expires_in <= 0 ||
-        value.expires_in > 1800
+      return credentials(value)
+    },
+    async browserLogin(email: string, password: string) {
+      return credentials(
+        await request('/auth/browser/login', 'POST', { email, password }),
       )
-        throw new ApiError(502)
-      return {
-        token: value.access_token,
-        expiresAt: Date.now() + value.expires_in * 1000,
+    },
+    async renew() {
+      try {
+        return credentials(await request('/auth/browser/refresh', 'POST'))
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 409) throw error
+        return credentials(await request('/auth/browser/refresh', 'POST'))
       }
+    },
+    async browserLogout() {
+      await request('/auth/browser/logout', 'POST')
+    },
+    async bootstrap() {
+      return remote(await request('/auth/browser/bootstrap', 'POST'))
     },
     async me(): Promise<AccountUser> {
       const value = await request('/auth/me')

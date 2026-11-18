@@ -3,11 +3,13 @@ import { Icon } from '../../components/Icon'
 
 export function SectionCard({
   section,
+  readOnly = false,
   count,
   onOpen,
   onEdit,
   onToggleFavorite,
 }: {
+  readOnly?: boolean
   section: Section
   count: number
   onOpen: () => void
@@ -48,6 +50,7 @@ export function SectionCard({
             : `Fixar ${section.title} no topo`
         }
         aria-pressed={Boolean(section.favorite)}
+        disabled={readOnly}
         onClick={onToggleFavorite}
       >
         <Icon name="star" />
@@ -55,6 +58,7 @@ export function SectionCard({
       <button
         className="icon-button section-menu"
         aria-label={`Configurar ${section.title}`}
+        disabled={readOnly}
         onClick={onEdit}
       >
         <Icon name="more" />

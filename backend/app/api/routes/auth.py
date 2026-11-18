@@ -50,6 +50,24 @@ def register(
         ) from None
 
 
+def authenticate_login(payload, request, session):
+    key = sha256(payload.email.encode()).hexdigest()
+    try:
+        request.app.state.auth_limiter.check(f"account:{key}", 10)
+    except RateLimitExceeded:
+        raise HTTPException(
+            429, "Too many attempts. Try again later.", headers={"Retry-After": "60"}
+        ) from None
+    try:
+        return AuthService().authenticate(
+            session, payload.email, payload.password.get_secret_value()
+        )
+    except InvalidCredentials:
+        raise HTTPException(
+            401, "Invalid email or password.", headers={"WWW-Authenticate": "Bearer"}
+        ) from None
+
+
 @router.post(
     "/login", response_model=TokenResponse, dependencies=[Depends(limit_auth_request)]
 )
@@ -60,21 +78,7 @@ def login(
     session: Session = Depends(get_session, scope="function"),
 ) -> TokenResponse:
     response.headers["Cache-Control"] = "no-store"
-    key = sha256(payload.email.encode()).hexdigest()
-    try:
-        request.app.state.auth_limiter.check(f"account:{key}", 10)
-    except RateLimitExceeded:
-        raise HTTPException(
-            429, "Too many attempts. Try again later.", headers={"Retry-After": "60"}
-        ) from None
-    try:
-        user = AuthService().authenticate(
-            session, payload.email, payload.password.get_secret_value()
-        )
-    except InvalidCredentials:
-        raise HTTPException(
-            401, "Invalid email or password.", headers={"WWW-Authenticate": "Bearer"}
-        ) from None
+    user = authenticate_login(payload, request, session)
     settings = request.app.state.settings
     try:
         active = AccountService().create_session(session, user, settings)

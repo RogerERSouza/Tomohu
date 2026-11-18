@@ -11,6 +11,7 @@ import type { Notebook, Reminder, Section, Content } from '../types'
 
 export function CollectionResults({
   notebook,
+  readOnly = false,
   privateCells = [],
   collection,
   actions,
@@ -20,6 +21,7 @@ export function CollectionResults({
   onOpenContent,
   onOpenReminder,
 }: {
+  readOnly?: boolean
   notebook: Notebook
   privateCells?: PrivateCell[]
   collection: Collection
@@ -41,6 +43,7 @@ export function CollectionResults({
   const sections: ReactNode[] = insertPrivateSlots<ReactNode>(
     visibleSections.map((section) => (
       <SectionCard
+        readOnly={readOnly}
         key={section.id}
         section={section}
         count={
@@ -62,6 +65,7 @@ export function CollectionResults({
   const contents = insertPrivateSlots<ReactNode>(
     visibleContents.map((content) => (
       <ContentCard
+        readOnly={readOnly}
         key={content.id}
         content={content}
         onOpen={() => onOpenContent(content.id)}

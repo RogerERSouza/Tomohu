@@ -1,10 +1,10 @@
 # Feature: Mandatory accounts and session continuity
 
-Status: Draft — product behavior agreed; session design and contracts pending
+Status: Implemented — release validation recorded below; awaiting application and merge
 
 Baseline: `e8efb610b647c0e4caba126315d845fa62b7db5f` (0.22.1). Accounts are optional. Guest notebooks and pending account caches are separate; bearer tokens are memory-only. Account notebooks synchronize explicitly, while opened private items autosave remotely.
 
-Delivery: Planned 0.23.0. Specification only; application behavior is unchanged.
+Delivery: 0.23.0 patch against `97485b8`. Runtime now requires account access.
 
 Planning baseline: `894823cb22fc1adf992641b8472370c9b98422b2` (workflow adoption merged; runtime remains 0.22.1).
 
@@ -64,6 +64,8 @@ Technical design work to complete before dependent implementation:
 
 These technical decisions can be resolved through repository inspection and security design without asking again about the agreed product behavior.
 
+The session design is recorded in [ADR 0006](../architecture/0006-browser-account-access.md). Browser renewal requires same-origin HTTPS production hosting; notebook/private data APIs retain bearer authorization.
+
 ## Implementation plan
 
 The baseline inspection identifies these responsibilities:
@@ -86,28 +88,35 @@ Implementation sequence:
 4. Implement startup/login, guarded account recovery/copy and read-only behavior in separate small changes.
 5. Run the existing suite plus acceptance coverage, inspect changed screens and review the entire diff against the spec.
 
-This documentation patch does not implement these steps or apply a database migration. Keep the specification in Draft until the session ADR and contracts are concrete; product behavior is already agreed.
+The 0.23 implementation follows ADR 0006 and adds migration 06 for browser renewal state. Acceptance results are recorded below; operational HTTPS hosting remains separate.
 
 ## Tasks
 
 - [x] Define account-first access, session continuity, legacy-data copy, read-only outage behavior and automatic first notebook.
 - [x] Identify affected modules and implementation sequence.
-- [ ] Finalize session architecture and contracts.
-- [ ] Record the ADR, contracts and safe migration/recovery plan.
-- [ ] Map acceptance criteria to meaningful tests; reproduce critical failure cases before implementation.
-- [ ] Implement authentication entry and session lifecycle in scoped steps.
-- [ ] Validate desktop/mobile, real API/PostgreSQL, old data and recovery paths.
-- [ ] Record evidence, review the complete diff and update delivery documentation.
+- [x] Finalize session architecture and contracts.
+- [x] Record the ADR, contracts and safe migration/recovery plan.
+- [x] Map acceptance criteria to meaningful tests; reproduce critical failure cases before implementation.
+- [x] Implement authentication entry and session lifecycle in scoped steps.
+- [x] Validate desktop/mobile, real API/PostgreSQL, old data and recovery paths.
+- [x] Record evidence, review the complete diff and update delivery documentation.
 
 ## Validation evidence
 
-| Criterion/check | Test or procedure | Result  | Evidence/limitations                                                          |
-| --------------- | ----------------- | ------- | ----------------------------------------------------------------------------- |
-| AC1–AC10        | Planned above     | Not run | Feature is not implemented; 0.22.1 tests do not establish these new behaviors |
+| Criterion/check     | Test or procedure                                                      | Result                         | Evidence/limitations                                                                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC1, AC3, AC9, AC10 | `accountAccess.spec.ts`, `legacyNotebook.test.tsx`                     | Passed                         | Login gate, explicit legacy consent/export, read-only network outage, reconnect and logout on desktop/mobile. Source bytes are preserved.                                 |
+| AC2, AC4            | `test_browser_sessions.py`, `accountsLive.spec.ts`                     | Passed                         | Real API renewal, automatic/idempotent bootstrap; concurrent PostgreSQL bootstrap creates one notebook.                                                                   |
+| AC5, AC8            | `accountSync.test.tsx`, `privateDraftRecovery.spec.ts`, account suites | Passed                         | Cache recovery, cross-tab protection, same-account draft recovery and account isolation.                                                                                  |
+| AC6                 | API client validation, authentication screen and outage tests          | Passed with hosting limitation | A separate build with no API configured blocks access and preserves legacy export; network failure has retry. Production hosting itself is not deployed or verified here. |
+| AC7                 | Account lifecycle and `privacyLive.spec.ts`                            | Passed                         | Real email verification/reset, session revocation and privacy recovery.                                                                                                   |
+| Session safeguards  | Backend session regression tests                                       | Passed                         | Origin/header checks, hashed renewal secrets, rotation, stale-cookie rejection, expiry, password revocation and independent bounded renewal budget.                       |
+
+Final command totals and environment limitations are recorded in [the release notes](../versions/0.23.0.md).
 
 ## Delivery and remaining limitations
 
-This is a draft for specification-driven development, not an implemented release. Current optional-login behavior remains unchanged. Product choices are agreed. Complete the technical session design before marking this specification Ready; acceptance tests remain unexecuted until implementation.
+The implementation passed release-branch validation and is delivered as a patch. This is not a production deployment: same-origin HTTPS routing and verified operational backups are still required before public account use. No settings-navigation or custom-ordering behavior is bundled.
 
 ## Design references
 
@@ -116,3 +125,13 @@ This is a draft for specification-driven development, not an implemented release
 - [MDN third-party cookie constraints](https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies)
 
 Use these references when finalizing the session ADR and verify the chosen hosting arrangement in browser integration tests.
+
+## Review recovery addendum
+
+Baseline: `593937056cca5249a482b98165267e35e17297e6`. Scope: preserve an unsaved common-notebook draft during authentication rejection, report unconfirmed remote logout accurately, and retain legacy recovery after read failures. No storage/schema change or authentication bypass is introduced.
+
+- **AC11:** if browser writes fail and authentication expires, close protected UI while retaining its state in memory. Require the same account to recover an unpreserved draft, warn before closing the tab and keep workspace changes blocked until saving/export. Reauthentication must not recreate the controller from an older cache.
+- **AC12:** a failed cookie logout followed by bearer `401` does not prove remote revocation. Close local access and show the unconfirmed-logout warning.
+- **AC13:** a failed legacy re-read retains the previous raw bytes and an actionable error. Permit export of the last successfully read copy and retry; never upload an unconfirmed/stale copy or delete the source.
+
+Regression-first evidence: the added browser probes reproduced lost note text and a missing logout warning; the legacy component probe reproduced a missing error/panel before the corrections. Final validation is recorded in the review-fix release notes.
